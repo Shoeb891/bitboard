@@ -69,7 +69,7 @@ cd bitboard
 
 ### 2. Create a Branch
 
-Never work directly on main.
+* Never work directly on main.
 
 ```
 git checkout -b feature/your-feature-name
@@ -85,11 +85,11 @@ fix/websocket-bug
 
 ### 3. Make Your Changes
 
-Keep changes focused and small
+* Keep changes focused and small
 
-Follow existing structure and conventions
+* Follow existing structure and conventions
 
-Test locally before committing
+* Test locally before committing
 
 ### 4. Commit Your Work
 
@@ -100,11 +100,11 @@ git push origin feature/your-feature-name
 
 Then:
 
-Open a Pull Request on GitHub
+* Open a Pull Request on GitHub
 
-Request at least one review
+* Request at least one review
 
-Merge only after approval
+* Merge only after approval
 
 
 
