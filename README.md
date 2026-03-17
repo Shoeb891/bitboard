@@ -76,11 +76,12 @@ git checkout -b feature/your-feature-name
 ```
 
 Branch naming examples:
-
+```
 feature/drawing-canvas
 feature/auth-setup
 feature/feed-api
 fix/websocket-bug
+```
 
 ### 3. Make Your Changes
 
