@@ -18,7 +18,7 @@ Bitboard is built around constraint-driven creativity.
 
 The limitations (low resolution, no uploads, simple tools) are intentional—they are not technical limitations, but part of the artistic and social design.
 
-\---
+
 
 ## Tech Stack (Planned)
 
@@ -29,19 +29,18 @@ The limitations (low resolution, no uploads, simple tools) are intentional—the
 * **Storage:** Cloud object storage (for bitmap data)
 * **Hosting:** Cloud platform (e.g., Render, Fly.io, AWS)
 
-\---
+
 
 ## Project Structure
-
+```
 bitboard/
 frontend/ # React app (UI, drawing engine, feed)
 backend/ # Node.js API + WebSocket server
 docs/ # Documentation, specs
 infrastructure/ # Deployment configs (optional)
+```
 
 
-
-\---
 
 ## Core Features (MVP)
 
@@ -57,20 +56,24 @@ infrastructure/ # Deployment configs (optional)
 * Simple social games (e.g., hangman)
 * Additional modular creative tools
 
-\---
+
 
 ## How to Contribute
 
 ### 1. Clone the Repository
 
+```
 git clone https://github.com/ludensg/bitboard.git
 cd bitboard
+```
 
 ### 2. Create a Branch
 
 Never work directly on main.
 
+```
 git checkout -b feature/your-feature-name
+```
 
 Branch naming examples:
 
@@ -89,8 +92,10 @@ Test locally before committing
 
 ### 4. Commit Your Work
 
+```
 git push origin feature/your-feature-name
 
+```
 
 Then:
 
@@ -101,24 +106,28 @@ Request at least one review
 Merge only after approval
 
 
+
 ### 6. Pull Latest Changes
 
 Before starting new work:
-
+```
 git checkout main
 git pull
+```
+
 
 
 ## Development Setup
 
 ### Frontend
-
+```
 cd frontend
 npm install
 npm run dev
-
+```
 ### Backend
-
+```
 cd backend
 npm install
 node index.js
+```
