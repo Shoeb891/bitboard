@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  username     String   @unique
+  nickname     String?
+  bio          String?
+  avatarColor  String?
+  role         Role     @default(USER)
+  status       UserStatus @default(ACTIVE)
+  uiTheme      String   @default("light")
+  createdAt    DateTime @default(now())
+
+  posts        Post[]
+  likes        Like[]
+  followers    Follow[] @relation("followers")
+  following    Follow[] @relation("following")
+  notificationsReceived Notification[] @relation("recipient")
+  notificationsSent     Notification[] @relation("sender")
+
+    moderationLogs   ModerationLog[]  // ✅ THIS FIXES ERROR
+
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  authorId  String
+  width     Int
+  height    Int
+  pixels    Int[]
+  palette   String[]
+  hashtags  String[]
+  isFlagged Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  author    User     @relation(fields: [authorId], references: [id])
+  likes     Like[]
+  notifications Notification[]
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model Follow {
+  id           String   @id @default(uuid())
+  followerId   String
+  followingId  String
+  createdAt    DateTime @default(now())
+
+  follower  User @relation("following", fields: [followerId], references: [id])
+  following User @relation("followers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        NotificationType
+  recipientId String
+  senderId    String?
+  postId      String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  recipient User @relation("recipient", fields: [recipientId], references: [id])
+  sender    User? @relation("sender", fields: [senderId], references: [id])
+  post      Post? @relation(fields: [postId], references: [id])
+}
+
+model ModerationLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum NotificationType {
+  LIKE
+  FOLLOW
+  NEW_POST
+}
