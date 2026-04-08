@@ -1,0 +1,32 @@
+[data-theme="dark"] {
+  --black: #e8e8e8;
+  --white: #1a1a1a;
+  --bg: #111111;
+  --border: 2px solid #e8e8e8;
+  --accent: #a855f7;
+  --accent-light: #2d1a4a;
+}
+
+[data-theme="dark"] .bb-app {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+}
+
+[data-theme="dark"] .bb-app::before {
+  background-image:
+    linear-gradient(rgba(200,200,200,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,200,200,0.04) 1px, transparent 1px);
+}
+
+[data-theme="dark"] .bb-skel {
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 200% 100%;
+  animation: bbSkel 1.4s infinite;
+}
+
+[data-theme="dark"] .bb-nav-item.active {
+  background: var(--black);
+  color: var(--white);
+}

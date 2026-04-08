@@ -1,0 +1,528 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+@import "./theme.css";
+
+/* ─── DESIGN TOKENS ─── */
+:root {
+  --cell: 22px;
+  --black: #1a1a1a;
+  --white: #ffffff;
+  --bg: #f1f1ef;
+  --border: 2px solid #1a1a1a;
+  --fp: 'Press Start 2P', monospace;
+  --fb: 'VT323', monospace;
+  --sw: 200px;
+  --accent: #7b2fbe;
+  --accent-light: #e9d8fd;
+}
+
+/* ─── BB-APP: full-page layout with animated grid background ─── */
+.bb-app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  font-family: var(--fb);
+  color: var(--black);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(0,0,0,0.065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.065) 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+}
+
+.bb-app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(80,80,80,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80,80,80,0.06) 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+  animation: bbGridBreath 8s ease-in-out infinite;
+}
+
+@keyframes bbGridBreath {
+  0%,100% { opacity: 0.2; }
+  40%      { opacity: 1;   }
+  70%      { opacity: 0.6; }
+}
+
+/* ─── BB-ZONE: darkens grid on hover ─── */
+.bb-zone {
+  position: relative;
+  z-index: 1;
+}
+.bb-zone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.09) 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+.bb-zone:hover::after { opacity: 1; }
+
+/* ─── BB-SIDEBAR ─── */
+.bb-sidebar {
+  width: var(--sw);
+  flex-shrink: 0;
+  border-right: var(--border);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--white);
+  z-index: 10;
+  position: relative;
+}
+
+/* ─── BB-MAIN: scrollable content area ─── */
+.bb-main {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── BB-TOPBAR ─── */
+.bb-topbar {
+  border-bottom: var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.bb-topbar-title {
+  font-family: var(--fp);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+/* ─── BB-NAV ─── */
+.bb-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  font-family: var(--fp);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  text-decoration: none;
+  color: var(--black);
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+  z-index: 1;
+}
+.bb-nav-item:hover { background: rgba(0,0,0,0.04); }
+.bb-nav-item.active {
+  background: var(--black);
+  color: var(--white);
+}
+.bb-nav-item.active svg { stroke: var(--white); }
+
+.bb-logo {
+  padding: 14px;
+  border-bottom: var(--border);
+  font-family: var(--fp);
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  user-select: none;
+}
+.bb-logo-b { font-size: 18px; font-weight: 900; }
+.bb-logo-script { font-size: 9px; opacity: 0.6; }
+
+/* ─── BB-BTN ─── */
+.bb-btn {
+  font-family: var(--fp);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  padding: 8px 14px;
+  border: var(--border);
+  background: var(--white);
+  color: var(--black);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.bb-btn:hover { background: var(--black); color: var(--white); }
+.bb-btn-solid {
+  background: var(--black);
+  color: var(--white);
+}
+.bb-btn-solid:hover { background: #444; }
+.bb-btn-accent {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+.bb-btn-accent:hover { background: #5a1f9a; }
+
+/* ─── BB-POST card ─── */
+.bb-post {
+  border-bottom: var(--border);
+  padding: 16px;
+  background: var(--white);
+  position: relative;
+  z-index: 1;
+}
+.bb-post-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.bb-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bb-post-time {
+  font-size: 13px;
+  opacity: 0.5;
+}
+.bb-post-canvas {
+  display: block;
+  image-rendering: pixelated;
+  max-width: 100%;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+.bb-post-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.bb-post-caption {
+  font-size: 15px;
+  margin-top: 8px;
+  opacity: 0.75;
+}
+.bb-post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.bb-tag {
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ─── BB-LIKE button ─── */
+.bb-like-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--black);
+  padding: 4px 8px;
+  border-radius: 2px;
+  transition: background 0.12s;
+  font-family: var(--fb);
+}
+.bb-like-btn:hover { background: rgba(0,0,0,0.06); }
+.bb-like-btn.liked { color: #e63946; }
+.bb-like-heart { font-size: 18px; transition: transform 0.1s; }
+.bb-like-btn:active .bb-like-heart { transform: scale(0.82); }
+
+/* ─── BB-USERTAG badge ─── */
+.bb-usertag {
+  display: inline-block;
+  font-family: var(--fp);
+  font-size: 7px;
+  padding: 4px 10px;
+  letter-spacing: 0.04em;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  white-space: nowrap;
+}
+
+/* ─── BB-FEED ─── */
+.bb-feed-empty {
+  padding: 60px 20px;
+  text-align: center;
+  font-family: var(--fp);
+  font-size: 9px;
+  opacity: 0.4;
+  line-height: 2;
+}
+.bb-feed-skeleton {
+  border-bottom: var(--border);
+  padding: 16px;
+  background: var(--white);
+}
+.bb-skel {
+  background: linear-gradient(90deg, #eee 25%, #f8f8f8 50%, #eee 75%);
+  background-size: 200% 100%;
+  animation: bbSkel 1.4s infinite;
+  border-radius: 2px;
+}
+@keyframes bbSkel {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── BB-PROFILE ─── */
+.bb-profile-header {
+  padding: 24px 20px 16px;
+  border-bottom: var(--border);
+  background: var(--white);
+}
+.bb-profile-stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 14px;
+  font-size: 15px;
+}
+.bb-profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.bb-profile-stat-num {
+  font-family: var(--fp);
+  font-size: 10px;
+}
+.bb-profile-bio {
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+.bb-profile-bio-input {
+  font-family: var(--fb);
+  font-size: 16px;
+  border: 1px dashed var(--black);
+  background: transparent;
+  color: var(--black);
+  width: 100%;
+  resize: none;
+  padding: 4px;
+  outline: none;
+}
+
+.bb-tabs {
+  display: flex;
+  border-bottom: var(--border);
+  background: var(--white);
+}
+.bb-tab {
+  flex: 1;
+  padding: 12px;
+  font-family: var(--fp);
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  color: var(--black);
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.bb-tab:hover { opacity: 0.7; }
+.bb-tab.active { border-bottom-color: var(--black); opacity: 1; }
+
+/* ─── BB-POSTGRID ─── */
+.bb-postgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  background: var(--black);
+  border-top: 2px solid var(--black);
+}
+.bb-postgrid-cell {
+  position: relative;
+  background: var(--white);
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: pointer;
+}
+.bb-postgrid-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+}
+.bb-postgrid-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: var(--white);
+  font-size: 14px;
+}
+.bb-postgrid-cell:hover .bb-postgrid-overlay { opacity: 1; }
+
+/* ─── BB-NOTIFICATION ─── */
+.bb-notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--white);
+  border: var(--border);
+  z-index: 100;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
+}
+.bb-notif-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  font-size: 13px;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.bb-notif-item.unread { background: var(--accent-light); }
+.bb-notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: var(--border);
+  font-family: var(--fp);
+  font-size: 7px;
+}
+.bb-notif-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e63946;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+/* ─── BB-SETTINGS ─── */
+.bb-settings-section {
+  padding: 20px;
+  border-bottom: var(--border);
+  background: var(--white);
+}
+.bb-settings-label {
+  font-family: var(--fp);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  margin-bottom: 14px;
+  opacity: 0.6;
+}
+.bb-input {
+  font-family: var(--fb);
+  font-size: 16px;
+  border: var(--border);
+  background: var(--white);
+  color: var(--black);
+  padding: 8px 10px;
+  width: 100%;
+  outline: none;
+}
+.bb-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ─── BB-DRAW page ─── */
+.bb-draw-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  gap: 16px;
+}
+.bb-draw-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.bb-draw-post-panel {
+  width: 100%;
+  max-width: 520px;
+  border: var(--border);
+  background: var(--white);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ─── BB-EXPLORE ─── */
+.bb-explore-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: var(--border);
+  background: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+.bb-chip {
+  font-family: var(--fp);
+  font-size: 7px;
+  padding: 5px 10px;
+  border: 1px solid var(--black);
+  background: var(--white);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.12s;
+}
+.bb-chip:hover, .bb-chip.active { background: var(--black); color: var(--white); }
+
+/* ─── BB-BADGE (follow/unfollow) ─── */
+.bb-badge {
+  display: inline-block;
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--fp);
+  font-size: 7px;
+  padding: 4px 10px;
+  border: var(--border);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.12s;
+}
+.bb-badge.following { background: var(--white); color: var(--black); }
+.bb-badge:hover { opacity: 0.75; }
+
+/* ─── SCROLLBAR ─── */
+.bb-main::-webkit-scrollbar { width: 6px; }
+.bb-main::-webkit-scrollbar-track { background: transparent; }
+.bb-main::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
+
+/* ─── UTILITY ─── */
+.bb-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #e63946;
+  opacity: 0;
+  padding: 2px 4px;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+}
+.bb-post:hover .bb-delete-btn { opacity: 1; }
