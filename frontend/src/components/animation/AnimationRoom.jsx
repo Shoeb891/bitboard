@@ -55,9 +55,9 @@ export default function AnimationRoom() {
   }
 
   return (
-    <div style={{ display: "flex", gap: 0, height: "100%", flexWrap: "wrap" }}>
+    <div className="bb-anim-room" style={{ display: "flex", gap: 0, height: "100%", flexWrap: "wrap" }}>
       {/* Left: frame list */}
-      <div style={{
+      <div className="bb-anim-frames" style={{
         width: 120,
         borderRight: "var(--border)",
         display: "flex",
@@ -129,7 +129,7 @@ export default function AnimationRoom() {
 
       {/* Right: playback */}
       {frames.length > 0 && (
-        <div style={{
+        <div className="bb-anim-preview" style={{
           width: 200,
           borderLeft: "var(--border)",
           display: "flex",

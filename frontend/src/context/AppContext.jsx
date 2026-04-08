@@ -17,7 +17,8 @@ const AppContext = createContext(null);
 // ─── INITIAL STATE ────────────────────────────────────────────────────────────
 const initialState = {
   currentUser: null,  // populated on mount by the useEffect below
-  theme: "light",
+  // Restore last saved theme from localStorage so the preference survives refresh
+  theme: localStorage.getItem("bb_theme") ?? "light",
   // Shallow-copy each notification so the store doesn't share references
   // with the mockData array (mutations would otherwise affect the source)
   notifications: MOCK_NOTIFICATIONS.map(n => ({ ...n })),
@@ -91,9 +92,11 @@ export function AppProvider({ children }) {
     );
   }, []);
 
-  // Apply the theme to the <html> element so CSS [data-theme="dark"] rules kick in
+  // Apply the theme to the <html> element so CSS :root[data-theme="dark"] rules kick in,
+  // and persist the preference to localStorage so it survives page refreshes
   useEffect(() => {
     document.documentElement.dataset.theme = state.theme;
+    localStorage.setItem("bb_theme", state.theme);
   }, [state.theme]);
 
   return (

@@ -525,4 +525,139 @@
   display: flex;
   align-items: center;
 }
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+
+/* Bottom nav bar — hidden on desktop/tablet, visible on mobile only */
+.bb-bottomnav {
+  display: none;
+}
+
+/* Topbar notification bell — visible on mobile only (sidebar bell takes over
+   on desktop/tablet) */
+.bb-topbar-bell {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Tablet: 640–1023px ── */
+@media (min-width: 640px) and (max-width: 1023px) {
+  /* Narrow the sidebar to reclaim horizontal space */
+  :root { --sw: 160px; }
+
+  /* Hide topbar bell — sidebar bell is still visible */
+  .bb-topbar-bell { display: none; }
+}
+
+/* ── Desktop: 1024px+ ── */
+@media (min-width: 1024px) {
+  /* Hide topbar bell — sidebar bell is still visible */
+  .bb-topbar-bell { display: none; }
+}
+
+/* ── Mobile: ≤639px ── */
+@media (max-width: 639px) {
+  /* Hide the sidebar entirely — the bottom nav takes its place */
+  .bb-sidebar { display: none; }
+
+  /* Show the bottom nav bar */
+  .bb-bottomnav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    /* env() adds extra height for the iPhone home indicator */
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--white);
+    border-top: var(--border);
+    z-index: 100;
+    align-items: stretch;
+  }
+
+  /* Each icon + label item in the bottom nav */
+  .bb-bottomnav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-decoration: none;
+    color: var(--black);
+    font-family: var(--fp);
+    font-size: 6px;
+    letter-spacing: 0.04em;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 6px 2px;
+    min-height: 44px; /* touch-friendly minimum */
+  }
+
+  /* Active route highlights in accent colour */
+  .bb-bottomnav-item.active {
+    opacity: 1;
+    color: var(--accent);
+  }
+  .bb-bottomnav-item.active svg {
+    stroke: var(--accent);
+  }
+
+  /* Push content up so it isn't hidden behind the fixed bottom nav.
+     env() matches the extra padding on .bb-bottomnav for iPhone home indicator */
+  .bb-main {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+
+  /* PostGrid: 3 columns is too tight on a phone — drop to 2 */
+  .bb-postgrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Notification dropdown: anchor it to the bottom of the viewport above the
+     bottom nav instead of using the fixed 280px right-aligned popover */
+  .bb-notif-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: calc(56px + env(safe-area-inset-bottom));
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+
+  /* Tighten topbar padding and shrink the title font on narrow screens */
+  .bb-topbar { padding: 8px 12px; }
+  .bb-topbar-title { font-size: 8px; }
+
+  /* Reduce post card padding to give pixel-art canvas more room */
+  .bb-post { padding: 10px 12px; }
+
+  /* Tighten profile header and stats row */
+  .bb-profile-header { padding: 16px 12px 12px; }
+  .bb-profile-stats  { gap: 14px; }
+
+  /* Tighten settings sections */
+  .bb-settings-section { padding: 14px 12px; }
+
+  /* Tighten draw page */
+  .bb-draw-page { padding: 12px 10px; gap: 12px; }
+
+  /* AnimationRoom — stack the three panes vertically instead of horizontally */
+  .bb-anim-room   { flex-direction: column !important; height: auto !important; }
+  .bb-anim-frames {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: var(--border);
+    max-height: 180px;
+  }
+  .bb-anim-preview {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: var(--border);
+  }
+}
 .bb-post:hover .bb-delete-btn { opacity: 1; }

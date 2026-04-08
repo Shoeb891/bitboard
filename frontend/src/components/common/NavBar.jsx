@@ -5,7 +5,7 @@
 //   - a list of NavLinks (React Router) that highlight when their route is active
 //   - a purple "+ CREATE" shortcut that jumps straight to /draw
 //   - the current user's username badge and the notification bell at the bottom
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { Home, Compass, PenLine, Film, User, Settings, Plus } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { getUserPalette } from "../../utils/palette";
@@ -21,6 +21,9 @@ const NAV_ITEMS = [
   { to: "/settings", label: "SETTINGS",Icon: Settings },
 ];
 
+// Bottom nav shows these 5 routes — Animate is WIP so it's excluded
+const BOTTOM_NAV_ITEMS = NAV_ITEMS.filter(({ to }) => to !== "/animate");
+
 export default function NavBar() {
   const navigate = useNavigate();
   const { state } = useAppContext();
@@ -30,6 +33,8 @@ export default function NavBar() {
   const palette = getUserPalette(user?.id ?? "");
 
   return (
+    <>
+    {/* ── Desktop/tablet sidebar (hidden on mobile via CSS) ── */}
     <nav className="bb-sidebar bb-zone">
       {/* ── Logo ── */}
       <div className="bb-logo">
@@ -84,5 +89,21 @@ export default function NavBar() {
         <NotificationBell />
       </div>
     </nav>
+
+    {/* ── Mobile bottom navigation bar (hidden on desktop/tablet via CSS) ──
+        position: fixed in CSS so DOM position here doesn't matter */}
+    <nav className="bb-bottomnav">
+      {BOTTOM_NAV_ITEMS.map(({ to, label, Icon }) => (
+        <NavLink
+          key={to}
+          to={to}
+          className={({ isActive }) => `bb-bottomnav-item${isActive ? " active" : ""}`}
+        >
+          <Icon size={18} />
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
+    </>
   );
 }

@@ -12,6 +12,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import NavBar from "../Components/common/NavBar";
 import ThemeToggle from "../Components/common/ThemeToggle";
+import NotificationBell from "../Components/common/NotificationBell";
 import { useWebSocket } from "../hooks/useWebSocket";
 
 // Maps route prefixes to the title shown in the topbar
@@ -42,10 +43,15 @@ export default function Layout() {
 
       {/* Scrollable main column */}
       <div className="bb-main">
-        {/* Sticky topbar — page title on the left, theme toggle on the right */}
+        {/* Sticky topbar — page title on the left, controls on the right.
+            The notification bell is wrapped in bb-topbar-bell so CSS can hide
+            it on desktop/tablet where the sidebar bell takes its place. */}
         <div className="bb-topbar bb-zone">
           <span className="bb-topbar-title">{title}</span>
-          <ThemeToggle />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="bb-topbar-bell"><NotificationBell /></div>
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* The active page renders here */}

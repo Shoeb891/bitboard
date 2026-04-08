@@ -11,7 +11,7 @@
 //   Moves the --cell CSS custom property directly on <html> via
 //   document.documentElement.style.setProperty(). This changes the background
 //   grid size across the whole app in real time without a re-render.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { DEFAULT_PALETTE } from "../Pages/DrawingCanvas";
@@ -25,7 +25,15 @@ export default function SettingsPage() {
 
   const [bio, setBio]         = useState(user?.bio ?? "");
   const [saved, setSaved]     = useState(false);   // drives the "SAVED!" flash on the button
-  const [cellSize, setCellSize] = useState(22);    // tracks the slider value (px)
+  // Restore last saved grid density from localStorage so it survives page refreshes
+  const [cellSize, setCellSize] = useState(
+    () => Number(localStorage.getItem("bb_cell") ?? 22)
+  );
+
+  // Apply the restored cell size to the CSS variable on mount
+  useEffect(() => {
+    document.documentElement.style.setProperty("--cell", `${cellSize}px`);
+  }, []);
 
   // Save the bio to the mock API, update AppContext, and briefly flash "SAVED!"
   async function handleSaveBio() {
@@ -35,10 +43,12 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000); // reset button label after 2 seconds
   }
 
-  // Update the --cell variable directly on <html> so the grid redraws immediately
+  // Update the --cell variable directly on <html> so the grid redraws immediately,
+  // and persist the value to localStorage so it survives page refreshes
   function handleCellChange(val) {
     setCellSize(val);
     document.documentElement.style.setProperty("--cell", `${val}px`);
+    localStorage.setItem("bb_cell", val);
   }
 
   return (

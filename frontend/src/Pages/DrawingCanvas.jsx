@@ -269,7 +269,13 @@ export default function DrawingCanvas({
    *   24×36  → 12 px/cell → 288×432 canvas
    */
   const cellSize = useMemo(() => {
-    const maxW = 560, maxH = 460;
+    // On mobile (< 640px) shrink the canvas to fit the viewport.
+    // vw - 40 subtracts ~20px gutter on each side; capped at 340 so tablets
+    // don't end up with an unnecessarily small canvas.
+    // On desktop the original 560×460 limits apply.
+    const vw   = window.innerWidth;
+    const maxW = vw < 640 ? Math.min(vw - 40, 340) : 560;
+    const maxH = vw < 640 ? 340 : 460;
     return Math.max(4, Math.min(
       Math.floor(maxW / width),
       Math.floor(maxH / height),
