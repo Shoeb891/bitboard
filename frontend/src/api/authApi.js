@@ -8,11 +8,17 @@ export async function login({ email, password }) {
 }
 
 export async function register({ email, password, username, nickname }) {
-  // 1. Create Supabase auth user
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  // Persist username/nickname in Supabase user_metadata so the backend can
+  // lazy-create the Prisma profile even when email-confirmation delays the session.
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { username, nickname: nickname || username } },
+  });
   if (error) throw error;
 
-  // 2. Create Prisma User profile via backend
+  // Fast path: if signUp returned a session (email-confirmation OFF), create the
+  // Prisma profile immediately. Otherwise /api/auth/me will lazy-create on first login.
   const token = data.session?.access_token;
   if (token) {
     await apiFetch("/api/auth/register", {

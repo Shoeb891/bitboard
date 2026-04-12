@@ -8,18 +8,21 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [user, setUser]       = useState(null);   // Prisma user profile
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Fetch the Prisma user profile for the current Supabase session
   async function fetchProfile(accessToken) {
+    setProfileLoading(true);
     try {
       const profile = await apiFetch("/api/auth/me", {
         headers: { Authorization: "Bearer " + accessToken },
       });
       setUser(profile);
     } catch (err) {
-      // User may not have a profile yet (first-time registration in progress)
       console.warn("Could not fetch profile:", err.message);
       setUser(null);
+    } finally {
+      setProfileLoading(false);
     }
   }
 
@@ -28,6 +31,7 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(function({ data: { session: s } }) {
       setSession(s);
       if (s) {
+        setProfileLoading(true);
         fetchProfile(s.access_token);
       }
       setLoading(false);
@@ -38,6 +42,7 @@ export function AuthProvider({ children }) {
       function(_event, s) {
         setSession(s);
         if (s) {
+          setProfileLoading(true);
           fetchProfile(s.access_token);
         } else {
           setUser(null);
@@ -54,7 +59,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, setUser, loading, refreshUser }}>
+    <AuthContext.Provider value={{ session, user, setUser, loading, profileLoading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
