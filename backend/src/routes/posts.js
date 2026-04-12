@@ -1,9 +1,9 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../db/prisma");
 const { authenticate, optionalAuthenticate } = require("../middleware/authenticate");
+const validateBitmap = require("../middleware/validateBitmap");
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 function timeAgo(date) {
   const s = Math.floor((Date.now() - new Date(date)) / 1000);
@@ -130,12 +130,9 @@ router.get("/user/:userId/liked", optionalAuthenticate, async (req, res, next) =
 });
 
 // POST /api/posts — create a new drawing post
-router.post("/", authenticate, async (req, res, next) => {
+router.post("/", authenticate, validateBitmap, async (req, res, next) => {
   try {
     const { width, height, pixels, caption, hashtags, palette } = req.body;
-    if (!width || !height || !Array.isArray(pixels)) {
-      return res.status(400).json({ error: "width, height, and pixels are required" });
-    }
     const post = await prisma.post.create({
       data: {
         authorId: req.userId, width, height, pixels,
@@ -182,6 +179,18 @@ router.delete("/:id", authenticate, async (req, res, next) => {
         }
       } catch (e) { console.error("emit error:", e); }
     });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// POST /api/posts/:id/flag — flag a post for admin review
+router.post("/:id/flag", authenticate, async (req, res, next) => {
+  try {
+    const post = await prisma.post.findUnique({ where: { id: req.params.id } });
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    if (!post.isFlagged) {
+      await prisma.post.update({ where: { id: req.params.id }, data: { isFlagged: true } });
+    }
     res.json({ ok: true });
   } catch (err) { next(err); }
 });

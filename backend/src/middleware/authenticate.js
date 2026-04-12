@@ -1,4 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
+const prisma = require("../db/prisma");
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -9,6 +10,8 @@ const supabaseAdmin = createClient(
 /**
  * Verifies the Supabase JWT in the Authorization header.
  * On success, attaches req.userId (the Supabase auth user UUID).
+ * Rejects requests from users whose Prisma account is SUSPENDED or DELETED
+ * so moderation takes effect even if a stale Supabase session survives.
  */
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -21,6 +24,19 @@ async function authenticate(req, res, next) {
 
   if (error || !user) {
     return res.status(401).json({ error: "Invalid or expired token" });
+  }
+
+  // Allow the registration endpoint to run before a Prisma profile exists.
+  const isRegister = req.method === "POST" && req.originalUrl.endsWith("/api/auth/register");
+
+  if (!isRegister) {
+    const profile = await prisma.user.findUnique({
+      where:  { id: user.id },
+      select: { status: true },
+    });
+    if (profile && profile.status !== "ACTIVE") {
+      return res.status(403).json({ error: "Account " + profile.status.toLowerCase() });
+    }
   }
 
   req.userId = user.id;

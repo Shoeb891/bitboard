@@ -48,3 +48,8 @@ export async function createPost({ bitmap, caption, tags, format }) {
 export async function deletePost(postId) {
   return apiFetch("/api/posts/" + postId, { method: "DELETE" });
 }
+
+/** Flag a post for admin review. */
+export async function flagPost(postId) {
+  return apiFetch("/api/posts/" + postId + "/flag", { method: "POST" });
+}

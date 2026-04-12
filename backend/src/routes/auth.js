@@ -1,9 +1,8 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../db/prisma");
 const { authenticate } = require("../middleware/authenticate");
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 // Called by the frontend immediately after supabase.auth.signUp succeeds.

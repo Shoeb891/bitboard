@@ -1,10 +1,9 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../db/prisma");
 const { authenticate, supabaseAdmin } = require("../middleware/authenticate");
 const requireAdmin = require("../middleware/requireAdmin");
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // All admin routes require authentication + admin role
 router.use(authenticate, requireAdmin);
@@ -31,6 +30,27 @@ router.get("/posts", async (req, res, next) => {
         likes:     p._count ? p._count.likes : 0,
         createdAt: p.createdAt,
         bitmap:    { width: p.width, height: p.height, pixels: p.pixels },
+      };
+    }));
+  } catch (err) { next(err); }
+});
+
+// GET /api/admin/logs — recent moderation log entries (AMS1.5)
+router.get("/logs", async (req, res, next) => {
+  try {
+    const logs = await prisma.moderationLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: { admin: { select: { username: true, nickname: true } } },
+    });
+    res.json(logs.map(function(l) {
+      return {
+        id:        l.id,
+        action:    l.action,
+        targetId:  l.targetId,
+        adminId:   l.adminId,
+        adminUsername: l.admin ? l.admin.username : "",
+        createdAt: l.createdAt,
       };
     }));
   } catch (err) { next(err); }

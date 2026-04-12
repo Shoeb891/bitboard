@@ -1,9 +1,8 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../db/prisma");
 const { authenticate } = require("../middleware/authenticate");
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // GET /api/notifications — current user's notifications
 router.get("/", authenticate, async (req, res, next) => {

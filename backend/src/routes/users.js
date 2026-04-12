@@ -1,9 +1,8 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../db/prisma");
 const { authenticate, optionalAuthenticate } = require("../middleware/authenticate");
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 function formatUserProfile(u) {
   return {

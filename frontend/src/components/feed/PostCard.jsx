@@ -12,13 +12,14 @@
 //   canvas is drawn after the DOM node exists. The dependency is [post.id]
 //   rather than [post.bitmap] because bitmaps are immutable after creation —
 //   the ID changing (a different post) is the only time we need to redraw.
-import { useRef, useEffect } from "react";
-import { Trash2 } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { Trash2, Flag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { renderBitmapToCanvas } from "../../utils/bitmap";
 import { DEFAULT_PALETTE, getUserPalette } from "../../utils/palette";
 import { useAppContext } from "../../context/AppContext";
 import { useFeed } from "../../hooks/useFeed";
+import * as postsApi from "../../api/postsApi";
 import LikeButton from "./LikeButton";
 
 // ── UserTag ──────────────────────────────────────────────────────────────────
@@ -45,6 +46,17 @@ export default function PostCard({ post }) {
 
   // True when the logged-in user owns this post — shows the delete button
   const isOwn = state.currentUser?.id === post.userId;
+  const [flagged, setFlagged] = useState(Boolean(post.isFlagged));
+
+  async function handleFlag() {
+    if (flagged) return;
+    try {
+      await postsApi.flagPost(post.id);
+      setFlagged(true);
+    } catch (err) {
+      console.warn("Flag failed:", err.message);
+    }
+  }
 
   // Draw the bitmap onto the canvas after the component mounts.
   // renderBitmapToCanvas handles both binary (0/1) and full-colour (0-15) pixel arrays.
@@ -65,13 +77,23 @@ export default function PostCard({ post }) {
 
         {/* Delete button — only rendered for the current user's own posts,
             and only becomes visible on hover via CSS (.bb-post:hover .bb-delete-btn) */}
-        {isOwn && (
+        {isOwn ? (
           <button
             className="bb-delete-btn"
             onClick={() => deletePost(post.id)}
             title="Delete post"
           >
             <Trash2 size={14} />
+          </button>
+        ) : state.currentUser && (
+          <button
+            className="bb-delete-btn"
+            onClick={handleFlag}
+            disabled={flagged}
+            title={flagged ? "Flagged for review" : "Flag post"}
+            style={{ opacity: flagged ? 0.5 : undefined }}
+          >
+            <Flag size={14} />
           </button>
         )}
       </div>
