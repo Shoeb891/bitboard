@@ -3,6 +3,7 @@ services:
   - type: web
     name: bitboard-api
     runtime: node
+    plan: free
     rootDir: .
     buildCommand: npm install && npx prisma generate
     preDeployCommand: npx prisma migrate deploy
