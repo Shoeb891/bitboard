@@ -30,7 +30,7 @@ export default function NavBar() {
   const user = state.currentUser;
 
   // Derive the avatar badge colour from the user's ID — same colour every time
-  const palette = getUserPalette(user?.id ?? "");
+  const palette = getUserPalette(user ?? "");
 
   return (
     <>

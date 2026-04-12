@@ -23,6 +23,7 @@ function formatPost(p, likeCount, liked) {
     userId:    p.authorId,
     username:  p.author ? p.author.username : "",
     nickname:  p.author ? (p.author.nickname || p.author.username) : "",
+    avatarColor: p.author ? (p.author.avatarColor || null) : null,
     timestamp: timeAgo(p.createdAt),
     createdAt: new Date(p.createdAt).getTime(),
     likes:     likeCount,
@@ -53,7 +54,7 @@ async function enrichPosts(posts, userId) {
 }
 
 const postInclude = {
-  author: { select: { username: true, nickname: true } },
+  author: { select: { username: true, nickname: true, avatarColor: true } },
   _count: { select: { likes: true } },
 };
 

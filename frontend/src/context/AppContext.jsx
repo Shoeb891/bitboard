@@ -46,10 +46,10 @@ function appReducer(state, action) {
         }),
       };
 
-    case "UPDATE_BIO":
+    case "UPDATE_PROFILE":
       return {
         ...state,
-        currentUser: state.currentUser ? { ...state.currentUser, bio: action.payload } : null,
+        currentUser: state.currentUser ? { ...state.currentUser, ...action.payload } : null,
       };
 
     case "TOGGLE_FOLLOW": {

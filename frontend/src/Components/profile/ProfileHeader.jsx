@@ -24,12 +24,12 @@ export default function ProfileHeader({ user, isOwnProfile }) {
 
   if (!user) return null;
 
-  const palette = getUserPalette(user.id);
+  const palette = getUserPalette(user);
 
   async function saveBio() {
     setEditingBio(false);
     await usersApi.updateProfile({ bio: bioValue });
-    dispatch({ type: "UPDATE_BIO", payload: bioValue });
+    dispatch({ type: "UPDATE_PROFILE", payload: { bio: bioValue } });
   }
 
   async function toggleList(which) {
@@ -105,7 +105,7 @@ export default function ProfileHeader({ user, isOwnProfile }) {
           ) : (
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
               {listData.map(function(u) {
-                const p = getUserPalette(u.id);
+                const p = getUserPalette(u);
                 return (
                   <li
                     key={u.id}

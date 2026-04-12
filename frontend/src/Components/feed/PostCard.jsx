@@ -25,8 +25,8 @@ import LikeButton from "./LikeButton";
 // ── UserTag ──────────────────────────────────────────────────────────────────
 // Small diagonal badge showing the post author's username in their unique colour.
 // The colour is derived deterministically from the userId so it never changes.
-function UserTag({ username, userId }) {
-  const palette = getUserPalette(userId);
+function UserTag({ username, userId, avatarColor }) {
+  const palette = getUserPalette({ id: userId, avatarColor });
   return (
     <span
       className="bb-usertag"
@@ -67,11 +67,11 @@ export default function PostCard({ post }) {
   }, [post.id]); // re-run only if a different post is rendered into this card
 
   return (
-    <div className="bb-post bb-zone">
+    <div className="bb-post">
       {/* ── Header: username badge, timestamp, delete button ── */}
       <div className="bb-post-header">
         <div className="bb-post-meta">
-          <UserTag username={post.username} userId={post.userId} />
+          <UserTag username={post.username} userId={post.userId} avatarColor={post.avatarColor} />
           <span className="bb-post-time">{post.timestamp}</span>
         </div>
 

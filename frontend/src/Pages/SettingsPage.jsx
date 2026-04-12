@@ -1,9 +1,8 @@
 // SettingsPage — user preferences and profile editing.
 //
 // Sections:
-//   PROFILE    — edit bio, display username (read-only)
-//   AVATAR COLOUR — shows the colour palette; avatar colour is auto-derived
-//                   from username so this is informational only for now
+//   PROFILE    — edit username + bio; SAVE PROFILE also persists avatar colour
+//   AVATAR COLOUR — pick a swatch from DEFAULT_PALETTE; saved with the profile
 //   APPEARANCE — toggle dark/light theme, adjust global grid density
 //   ABOUT      — version string, link to the /demo reference page
 //
@@ -25,8 +24,11 @@ export default function SettingsPage() {
   const { state, dispatch } = useAppContext();
   const user = state.currentUser;
 
+  const [username, setUsername] = useState(user?.username ?? "");
   const [bio, setBio]         = useState(user?.bio ?? "");
+  const [avatarColor, setAvatarColor] = useState(user?.avatarColor ?? null);
   const [saved, setSaved]     = useState(false);   // drives the "SAVED!" flash on the button
+  const [error, setError]     = useState("");
   // Restore last saved grid density from localStorage so it survives page refreshes
   const [cellSize, setCellSize] = useState(
     () => Number(localStorage.getItem("bb_cell") ?? 22)
@@ -37,12 +39,20 @@ export default function SettingsPage() {
     document.documentElement.style.setProperty("--cell", `${cellSize}px`);
   }, []);
 
-  // Save the bio to the mock API, update AppContext, and briefly flash "SAVED!"
-  async function handleSaveBio() {
-    await usersApi.updateProfile({ bio });
-    dispatch({ type: "UPDATE_BIO", payload: bio });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000); // reset button label after 2 seconds
+  // Save profile fields to the API, update AppContext, and briefly flash "SAVED!"
+  async function handleSaveProfile() {
+    setError("");
+    const payload = { bio, avatarColor };
+    if (username && username !== user?.username) payload.username = username;
+    try {
+      const updated = await usersApi.updateProfile(payload);
+      dispatch({ type: "UPDATE_PROFILE", payload: updated });
+      setUsername(updated.username);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err.message || "Save failed");
+    }
   }
 
   // Update the --cell variable directly on <html> so the grid redraws immediately,
@@ -59,12 +69,17 @@ export default function SettingsPage() {
       <div className="bb-settings-section">
         <div className="bb-settings-label">PROFILE</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Username is display-only — changing it requires backend support */}
+          {/* Username — editable; backend sanitises to [a-z0-9_-] and enforces uniqueness */}
           <div>
             <div style={{ fontFamily: "var(--fp)", fontSize: 7, opacity: 0.5, marginBottom: 6 }}>USERNAME</div>
-            <div style={{ fontFamily: "var(--fb)", fontSize: 18, opacity: 0.7 }}>
-              {user?.username ?? "—"}
-            </div>
+            <input
+              className="bb-input"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              maxLength={28}
+              spellCheck={false}
+              autoCapitalize="off"
+            />
           </div>
 
           {/* Bio textarea */}
@@ -80,29 +95,31 @@ export default function SettingsPage() {
             />
           </div>
 
-          <button
-            className="bb-btn bb-btn-solid"
-            onClick={handleSaveBio}
-            style={{ alignSelf: "flex-start" }}
-          >
-            {saved ? "SAVED!" : "SAVE PROFILE"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              className="bb-btn bb-btn-solid"
+              onClick={handleSaveProfile}
+              style={{ alignSelf: "flex-start" }}
+            >
+              {saved ? "SAVED!" : "SAVE PROFILE"}
+            </button>
+            {error && (
+              <span style={{ color: "#d33", fontSize: 12 }}>{error}</span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── AVATAR COLOUR section ── */}
       <div className="bb-settings-section">
         <div className="bb-settings-label">AVATAR COLOUR</div>
-        {/* Display the full palette — the selected swatch is shown but clicking
-            has no effect yet because avatar colour is derived from username */}
+        {/* Pick any drawing-palette colour for your username badge.
+            Saved alongside the rest of the profile on SAVE PROFILE. */}
         <ColorPalette
           palette={DEFAULT_PALETTE}
-          selected={user?.paletteId ?? 0}
-          onSelect={() => {}}
+          selected={DEFAULT_PALETTE.indexOf(avatarColor)}
+          onSelect={i => setAvatarColor(DEFAULT_PALETTE[i])}
         />
-        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.5 }}>
-          Avatar colour is derived from your username automatically.
-        </div>
       </div>
 
       {/* ── APPEARANCE section ── */}

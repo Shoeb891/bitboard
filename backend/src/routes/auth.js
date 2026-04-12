@@ -111,22 +111,37 @@ function sanitizeUsername(raw) {
 // ── PATCH /api/auth/me ────────────────────────────────────────────────────────
 router.patch("/me", authenticate, async (req, res, next) => {
   try {
-    const { nickname, bio, avatarColor, uiTheme } = req.body;
+    const { username, nickname, bio, avatarColor, uiTheme } = req.body;
 
-    const updated = await prisma.user.update({
-      where: { id: req.userId },
-      data: {
-        ...(nickname    !== undefined && { nickname }),
-        ...(bio         !== undefined && { bio }),
-        ...(avatarColor !== undefined && { avatarColor }),
-        ...(uiTheme     !== undefined && { uiTheme }),
-      },
-      include: {
-        _count: { select: { followers: true, following: true, posts: true } },
-      },
-    });
+    let cleanUsername;
+    if (username !== undefined) {
+      cleanUsername = String(username).toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 28);
+      if (cleanUsername.length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters (letters, numbers, _ or -)" });
+      }
+    }
 
-    res.json(formatUser(updated));
+    try {
+      const updated = await prisma.user.update({
+        where: { id: req.userId },
+        data: {
+          ...(cleanUsername !== undefined && { username: cleanUsername }),
+          ...(nickname      !== undefined && { nickname }),
+          ...(bio           !== undefined && { bio }),
+          ...(avatarColor   !== undefined && { avatarColor }),
+          ...(uiTheme       !== undefined && { uiTheme }),
+        },
+        include: {
+          _count: { select: { followers: true, following: true, posts: true } },
+        },
+      });
+      res.json(formatUser(updated));
+    } catch (err) {
+      if (err.code === "P2002" && Array.isArray(err.meta?.target) && err.meta.target.includes("username")) {
+        return res.status(409).json({ error: "Username already taken" });
+      }
+      throw err;
+    }
   } catch (err) {
     next(err);
   }
