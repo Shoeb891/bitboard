@@ -5,6 +5,11 @@ export async function getUserByUsername(username) {
   return apiFetch("/api/users/" + encodeURIComponent(username));
 }
 
+/** Search users by username or nickname (case-insensitive, up to 20 results). */
+export async function searchUsers(query) {
+  return apiFetch("/api/users/search?q=" + encodeURIComponent(query));
+}
+
 /** Get the current user's profile (requires auth). */
 export async function getCurrentUser() {
   return apiFetch("/api/auth/me");

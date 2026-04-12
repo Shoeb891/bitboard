@@ -97,6 +97,25 @@ router.get("/feed", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/posts/hashtags — all hashtags used across all posts, with counts.
+// Declared before /tag/:tag so the literal "hashtags" isn't matched as a tag.
+router.get("/hashtags", async (req, res, next) => {
+  try {
+    const rows = await prisma.post.findMany({ select: { hashtags: true } });
+    const counts = new Map();
+    for (const r of rows) {
+      for (const raw of r.hashtags || []) {
+        const tag = raw.startsWith("#") ? raw : "#" + raw;
+        counts.set(tag, (counts.get(tag) || 0) + 1);
+      }
+    }
+    const list = Array.from(counts.entries())
+      .map(function(entry) { return { tag: entry[0], count: entry[1] }; })
+      .sort(function(a, b) { return b.count - a.count || a.tag.localeCompare(b.tag); });
+    res.json(list);
+  } catch (err) { next(err); }
+});
+
 // GET /api/posts/tag/:tag — posts by hashtag
 router.get("/tag/:tag", optionalAuthenticate, async (req, res, next) => {
   try {

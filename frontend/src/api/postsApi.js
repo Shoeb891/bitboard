@@ -20,6 +20,11 @@ export async function getPostsByTag(tag) {
   return apiFetch("/api/posts/tag/" + encodeURIComponent(tag));
 }
 
+/** All hashtags across all posts, sorted by popularity — returns [{ tag, count }]. */
+export async function getHashtags() {
+  return apiFetch("/api/posts/hashtags");
+}
+
 /** Posts a user has liked. */
 export async function getLikedPosts(userId) {
   return apiFetch("/api/posts/user/" + userId + "/liked");

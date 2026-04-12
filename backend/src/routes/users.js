@@ -24,6 +24,28 @@ const userInclude = {
   _count: { select: { followers: true, following: true, posts: true } },
 };
 
+// GET /api/users/search?q=... — search users by username or nickname
+// Declared before /:username so the literal "search" isn't matched as a username.
+router.get("/search", optionalAuthenticate, async (req, res, next) => {
+  try {
+    const q = (req.query.q || "").trim();
+    if (!q) return res.json([]);
+    const users = await prisma.user.findMany({
+      where: {
+        status: "ACTIVE",
+        OR: [
+          { username: { contains: q, mode: "insensitive" } },
+          { nickname: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      include: userInclude,
+      take: 20,
+      orderBy: { username: "asc" },
+    });
+    res.json(users.map(formatUserProfile));
+  } catch (err) { next(err); }
+});
+
 // GET /api/users/:username — public profile
 router.get("/:username", optionalAuthenticate, async (req, res, next) => {
   try {
