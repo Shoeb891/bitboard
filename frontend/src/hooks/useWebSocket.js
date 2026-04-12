@@ -1,53 +1,55 @@
-// useWebSocket — simulates real-time notification delivery.
+// useWebSocket — real-time notification delivery via Socket.io.
 //
-// In a real app this hook would open a WebSocket connection to the backend
-// and listen for events (new likes, follows, posts). For now it uses
-// setInterval to drip in random notifications from the FAKE_INCOMING list,
-// so the notification bell and dropdown behave as if the server is sending
-// live updates.
+// Connects to the backend Socket.io server and listens for events:
+//   notification:new  — new like/follow/post notification
+//   post:new          — new post from a followed user
+//   post:deleted      — a post was removed
 //
-// This is a "side-effect-only" hook — it returns nothing. Just drop it into
-// a component that stays mounted for the app's lifetime (Layout does this).
-// The cleanup function in useEffect clears the timer when the component
-// unmounts, preventing memory leaks.
-import { useEffect } from "react";
+// Drop this hook into a component that stays mounted for the app's
+// lifetime (Layout does this). Cleanup disconnects the socket.
+import { useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 import { useAppContext } from "../context/AppContext";
-import { FAKE_INCOMING } from "../assets/mockData";
+import { useFeedContext } from "../context/FeedContext";
+import { useAuthContext } from "../context/AuthContext";
 
-// Module-level counter so notification IDs don't collide with the mock data IDs
-let notifCounter = 100;
+const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 export function useWebSocket() {
-  const { dispatch } = useAppContext();
+  const { dispatch: appDispatch } = useAppContext();
+  const { dispatch: feedDispatch } = useFeedContext();
+  const { session } = useAuthContext();
+  const socketRef = useRef(null);
 
-  useEffect(() => {
-    // Schedules itself recursively so the interval is random each time
-    // (between 45 and 90 seconds), rather than a fixed interval
-    function scheduleNext() {
-      const delay = 45_000 + Math.random() * 45_000;
-      return setTimeout(() => {
-        // Pick a random notification template from the list
-        const template = FAKE_INCOMING[Math.floor(Math.random() * FAKE_INCOMING.length)];
-        dispatch({
-          type: "ADD_NOTIFICATION",
-          payload: {
-            id: `notif_live_${++notifCounter}`,
-            type: template.type,
-            fromUsername: template.fromUsername,
-            postId: null,
-            read: false,       // new arrivals are always unread
-            timestamp: "now",
-            createdAt: Date.now(),
-            message: template.message,
-          },
-        });
-        // Schedule the next one after this one fires
-        timerId = scheduleNext();
-      }, delay);
-    }
+  useEffect(function() {
+    if (!session?.access_token) return;
 
-    let timerId = scheduleNext();
-    // Clear the pending timer if Layout ever unmounts
-    return () => clearTimeout(timerId);
-  }, [dispatch]);
+    const socket = io(SOCKET_URL, {
+      auth: { token: session.access_token },
+      transports: ["websocket", "polling"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("notification:new", function(notif) {
+      appDispatch({ type: "ADD_NOTIFICATION", payload: notif });
+    });
+
+    socket.on("post:new", function(post) {
+      feedDispatch({ type: "ADD_POST", payload: post });
+    });
+
+    socket.on("post:deleted", function(data) {
+      feedDispatch({ type: "DELETE_POST", payload: data.postId });
+    });
+
+    socket.on("connect_error", function(err) {
+      console.warn("Socket connection error:", err.message);
+    });
+
+    return function() {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [session?.access_token, appDispatch, feedDispatch]);
 }

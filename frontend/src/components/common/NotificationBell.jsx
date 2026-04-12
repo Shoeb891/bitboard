@@ -9,6 +9,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Bell, Heart, UserPlus, Image } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
+import * as usersApi from "../../api/usersApi";
 
 // Maps notification type strings to small icons shown beside each item
 const TYPE_ICON = {
@@ -73,7 +74,7 @@ export default function NotificationBell() {
               <button
                 className="bb-btn"
                 style={{ padding: "3px 8px", fontSize: 7 }}
-                onClick={() => dispatch({ type: "MARK_ALL_READ" })}
+                onClick={() => { usersApi.markAllNotificationsRead(); dispatch({ type: "MARK_ALL_READ" }); }}
               >
                 MARK ALL READ
               </button>
@@ -91,7 +92,7 @@ export default function NotificationBell() {
             <div
               key={n.id}
               className={`bb-notif-item${n.read ? "" : " unread"}`}
-              onClick={() => dispatch({ type: "MARK_READ", payload: n.id })}
+              onClick={() => { if (!n.read) usersApi.markNotificationRead(n.id); dispatch({ type: "MARK_READ", payload: n.id }); }}
               style={{ cursor: "pointer" }}
             >
               {/* Purple dot on the left for unread items */}

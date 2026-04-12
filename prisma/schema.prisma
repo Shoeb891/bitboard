@@ -5,35 +5,35 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  username     String   @unique
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String?
+  username     String     @unique
   nickname     String?
   bio          String?
   avatarColor  String?
-  role         Role     @default(USER)
+  role         Role       @default(USER)
   status       UserStatus @default(ACTIVE)
-  uiTheme      String   @default("light")
-  createdAt    DateTime @default(now())
+  uiTheme      String     @default("light")
+  createdAt    DateTime   @default(now())
 
-  posts        Post[]
-  likes        Like[]
-  followers    Follow[] @relation("followers")
-  following    Follow[] @relation("following")
+  posts                 Post[]
+  likes                 Like[]
+  followers             Follow[]       @relation("followers")
+  following             Follow[]       @relation("following")
   notificationsReceived Notification[] @relation("recipient")
   notificationsSent     Notification[] @relation("sender")
-
-    moderationLogs   ModerationLog[]  // ✅ THIS FIXES ERROR
-
+  moderationLogs        ModerationLog[]
 }
 
 model Post {
   id        String   @id @default(uuid())
   authorId  String
+  caption   String?
   width     Int
   height    Int
   pixels    Int[]
@@ -42,8 +42,8 @@ model Post {
   isFlagged Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  author    User     @relation(fields: [authorId], references: [id])
-  likes     Like[]
+  author        User           @relation(fields: [authorId], references: [id])
+  likes         Like[]
   notifications Notification[]
 }
 
@@ -60,10 +60,10 @@ model Like {
 }
 
 model Follow {
-  id           String   @id @default(uuid())
-  followerId   String
-  followingId  String
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
 
   follower  User @relation("following", fields: [followerId], references: [id])
   following User @relation("followers", fields: [followingId], references: [id])
@@ -72,15 +72,15 @@ model Follow {
 }
 
 model Notification {
-  id          String   @id @default(uuid())
+  id          String           @id @default(uuid())
   type        NotificationType
   recipientId String
   senderId    String?
   postId      String?
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
 
-  recipient User @relation("recipient", fields: [recipientId], references: [id])
+  recipient User  @relation("recipient", fields: [recipientId], references: [id])
   sender    User? @relation("sender", fields: [senderId], references: [id])
   post      Post? @relation(fields: [postId], references: [id])
 }
