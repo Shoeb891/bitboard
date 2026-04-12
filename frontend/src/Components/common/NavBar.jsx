@@ -6,28 +6,31 @@
 //   - a purple "+ CREATE" shortcut that jumps straight to /draw
 //   - the current user's username badge and the notification bell at the bottom
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { Home, Compass, PenLine, Film, User, Settings, Plus } from "lucide-react";
+import { Home, Compass, PenLine, Film, User, Settings, Plus, Shield } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { getUserPalette } from "../../utils/palette";
 import NotificationBell from "./NotificationBell";
-
-// Each entry maps to one nav link: route path, display label, and Lucide icon
-const NAV_ITEMS = [
-  { to: "/feed",     label: "FEED",    Icon: Home },
-  { to: "/explore",  label: "EXPLORE", Icon: Compass },
-  { to: "/draw",     label: "DRAW",    Icon: PenLine },
-  { to: "/animate",  label: "ANIMATE", Icon: Film },
-  { to: "/profile",  label: "PROFILE", Icon: User },
-  { to: "/settings", label: "SETTINGS",Icon: Settings },
-];
-
-// Bottom nav shows these 5 routes — Animate is WIP so it's excluded
-const BOTTOM_NAV_ITEMS = NAV_ITEMS.filter(({ to }) => to !== "/animate");
 
 export default function NavBar() {
   const navigate = useNavigate();
   const { state } = useAppContext();
   const user = state.currentUser;
+  const isAdmin = user?.role === "ADMIN";
+
+  // Each entry maps to one nav link: route path, display label, and Lucide icon.
+  // ADMIN is appended only for admin users so non-admins never see it.
+  const navItems = [
+    { to: "/feed",     label: "FEED",    Icon: Home },
+    { to: "/explore",  label: "EXPLORE", Icon: Compass },
+    { to: "/draw",     label: "DRAW",    Icon: PenLine },
+    { to: "/animate",  label: "ANIMATE", Icon: Film },
+    { to: "/profile",  label: "PROFILE", Icon: User },
+    { to: "/settings", label: "SETTINGS",Icon: Settings },
+    ...(isAdmin ? [{ to: "/admin", label: "ADMIN", Icon: Shield }] : []),
+  ];
+
+  // Bottom nav excludes Animate (WIP) but keeps Admin when applicable
+  const bottomNavItems = navItems.filter(({ to }) => to !== "/animate");
 
   // Derive the avatar badge colour from the user's ID — same colour every time
   const palette = getUserPalette(user ?? "");
@@ -47,7 +50,7 @@ export default function NavBar() {
           NavLink automatically receives the `isActive` boolean from React Router,
           which we use to add the "active" class (black background, white text). */}
       <div style={{ flex: 1 }}>
-        {NAV_ITEMS.map(({ to, label, Icon }) => (
+        {navItems.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -78,12 +81,23 @@ export default function NavBar() {
         justifyContent: "space-between",
       }}>
         {/* Show a truncated username in the user's badge colour */}
-        <span
-          className="bb-usertag"
-          style={{ background: palette.bg, color: palette.text, fontSize: 6 }}
-        >
-          {user?.username?.slice(0, 8) ?? "..."}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span
+            className="bb-usertag"
+            style={{ background: palette.bg, color: palette.text, fontSize: 6 }}
+          >
+            {user?.username?.slice(0, 8) ?? "..."}
+          </span>
+          {isAdmin && (
+            <span
+              className="bb-usertag"
+              style={{ background: "#000", color: "#fff", fontSize: 6 }}
+              title="Admin"
+            >
+              ADMIN
+            </span>
+          )}
+        </div>
 
         {/* Bell icon with unread count badge */}
         <NotificationBell />
@@ -93,7 +107,7 @@ export default function NavBar() {
     {/* ── Mobile bottom navigation bar (hidden on desktop/tablet via CSS) ──
         position: fixed in CSS so DOM position here doesn't matter */}
     <nav className="bb-bottomnav">
-      {BOTTOM_NAV_ITEMS.map(({ to, label, Icon }) => (
+      {bottomNavItems.map(({ to, label, Icon }) => (
         <NavLink
           key={to}
           to={to}
