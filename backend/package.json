@@ -1,0 +1,19 @@
+{
+  "name": "bitboard-backend",
+  "version": "1.0.0",
+  "description": "Bitboard API server",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "@supabase/supabase-js": "^2.49.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "prisma": "^6.19.2",
+    "socket.io": "^4.8.1"
+  }
+}

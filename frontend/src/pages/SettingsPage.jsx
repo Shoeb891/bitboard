@@ -12,14 +12,16 @@
 //   document.documentElement.style.setProperty(). This changes the background
 //   grid size across the whole app in real time without a re-render.
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import { DEFAULT_PALETTE } from "../Pages/DrawingCanvas";
 import ColorPalette from "../Components/canvas/ColorPalette";
 import ThemeToggle from "../Components/common/ThemeToggle";
 import * as usersApi from "../api/usersApi";
+import * as authApi from "../api/authApi";
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { state, dispatch } = useAppContext();
   const user = state.currentUser;
 
@@ -37,7 +39,7 @@ export default function SettingsPage() {
 
   // Save the bio to the mock API, update AppContext, and briefly flash "SAVED!"
   async function handleSaveBio() {
-    await usersApi.updateBio(bio);
+    await usersApi.updateProfile({ bio });
     dispatch({ type: "UPDATE_BIO", payload: bio });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000); // reset button label after 2 seconds
@@ -131,12 +133,23 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* ── ACCOUNT section ── */}
+      <div className="bb-settings-section">
+        <div className="bb-settings-label">ACCOUNT</div>
+        <button
+          className="bb-btn"
+          style={{ color: "#d33" }}
+          onClick={async function() { await authApi.logout(); navigate("/login"); }}
+        >
+          LOG OUT
+        </button>
+      </div>
+
       {/* ── ABOUT section ── */}
       <div className="bb-settings-section">
         <div className="bb-settings-label">ABOUT</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
           <div style={{ opacity: 0.6 }}>Bitboard v0.1.0 — pixel-first social platform</div>
-          {/* Link to the original standalone demo (preserved at /demo) */}
           <Link to="/demo" style={{ color: "var(--accent)", textDecoration: "underline", fontSize: 13 }}>
             View original demo →
           </Link>

@@ -1,66 +1,41 @@
-// FeedContext — state for all post and user data.
+// FeedContext — state for all post data.
 //
-// Separated from AppContext because posts change frequently (likes, new posts,
-// deletes) and we don't want every theme or notification change to trigger
-// a re-render of every PostCard in the feed.
-//
-// Holds:
-//   posts     — master list of all posts, sorted newest first
-//   users     — all user objects (used for profile lookups)
-//   loading   — true while the initial fetch is in progress
-//   activeTag — the hashtag currently selected in Explore (null = show all)
-//
-// Components use the useFeed() hook (src/hooks/useFeed.js) rather than
-// calling useContext(FeedContext) directly — that hook wraps the raw
-// dispatch calls in friendlier named functions (likePost, addPost, etc.).
+// Posts change frequently (likes, new posts, deletes) so they live
+// in their own context to avoid re-rendering unrelated components.
 import { createContext, useContext, useReducer, useEffect } from "react";
+import { useAuthContext } from "./AuthContext";
 import * as postsApi from "../api/postsApi";
-import * as usersApi from "../api/usersApi";
 
 const FeedContext = createContext(null);
 
-// ─── INITIAL STATE ────────────────────────────────────────────────────────────
 const initialState = {
   posts: [],
-  users: [],
-  loading: true,  // show skeleton cards until data arrives
+  loading: true,
   activeTag: null,
 };
 
-// ─── REDUCER ─────────────────────────────────────────────────────────────────
 function feedReducer(state, action) {
   switch (action.type) {
-
-    // Replaces the entire posts array and clears the loading flag
     case "SET_POSTS":
       return { ...state, posts: action.payload, loading: false };
 
-    // Replaces the entire users array
-    case "SET_USERS":
-      return { ...state, users: action.payload };
-
-    // Manually set the loading flag (used if we need to show a spinner mid-session)
     case "SET_LOADING":
       return { ...state, loading: action.payload };
 
-    // Prepend a newly created post so it appears at the top of the feed immediately
     case "ADD_POST":
       return { ...state, posts: [action.payload, ...state.posts] };
 
-    // Remove a deleted post by ID
     case "DELETE_POST":
-      return { ...state, posts: state.posts.filter(p => p.id !== action.payload) };
+      return { ...state, posts: state.posts.filter(function(p) { return p.id !== action.payload; }) };
 
-    // Replace a single post with its updated version (new like count + liked flag)
     case "TOGGLE_LIKE":
       return {
         ...state,
-        posts: state.posts.map(p =>
-          p.id === action.payload.id ? action.payload : p
-        ),
+        posts: state.posts.map(function(p) {
+          return p.id === action.payload.id ? action.payload : p;
+        }),
       };
 
-    // Set the active hashtag filter for the Explore page (null clears it)
     case "SET_TAG_FILTER":
       return { ...state, activeTag: action.payload };
 
@@ -69,20 +44,24 @@ function feedReducer(state, action) {
   }
 }
 
-// ─── PROVIDER ────────────────────────────────────────────────────────────────
 export function FeedProvider({ children }) {
   const [state, dispatch] = useReducer(feedReducer, initialState);
+  const { user } = useAuthContext();
 
-  // Load posts and users in parallel on mount — both are needed before
-  // anything meaningful can render, so we fetch them together with Promise.all
-  useEffect(() => {
-    Promise.all([postsApi.getPosts(), usersApi.getAllUsers()]).then(
-      ([posts, users]) => {
-        dispatch({ type: "SET_POSTS", payload: posts });
-        dispatch({ type: "SET_USERS", payload: users });
-      }
-    );
-  }, []);
+  // Load posts when user is authenticated
+  useEffect(function() {
+    if (!user) {
+      dispatch({ type: "SET_POSTS", payload: [] });
+      return;
+    }
+    dispatch({ type: "SET_LOADING", payload: true });
+    postsApi.getPosts().then(function(posts) {
+      dispatch({ type: "SET_POSTS", payload: posts });
+    }).catch(function(err) {
+      console.error("Failed to load posts:", err);
+      dispatch({ type: "SET_POSTS", payload: [] });
+    });
+  }, [user]);
 
   return (
     <FeedContext.Provider value={{ state, dispatch }}>
@@ -91,7 +70,6 @@ export function FeedProvider({ children }) {
   );
 }
 
-// ─── HOOK ────────────────────────────────────────────────────────────────────
 export function useFeedContext() {
   const ctx = useContext(FeedContext);
   if (!ctx) throw new Error("useFeedContext must be used inside FeedProvider");
