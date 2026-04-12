@@ -25,7 +25,8 @@ services:
         value: production
 
   # ── Frontend (Vite static build) ──
-  - type: static
+  - type: web
+    runtime: static
     name: bitboard-frontend
     rootDir: frontend
     buildCommand: npm install && npm run build
