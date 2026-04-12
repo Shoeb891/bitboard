@@ -8,7 +8,20 @@ const router = express.Router();
 // All admin routes require authentication + admin role
 router.use(authenticate, requireAdmin);
 
+function timeAgo(date) {
+  const s = Math.floor((Date.now() - new Date(date)) / 1000);
+  if (s < 60)    return "now";
+  if (s < 3600)  return Math.floor(s / 60) + "m";
+  if (s < 86400) return Math.floor(s / 3600) + "h";
+  return Math.floor(s / 86400) + "d";
+}
+
+function computeScale(w, h) {
+  return Math.max(4, Math.min(Math.floor(560 / w), Math.floor(460 / h)));
+}
+
 // GET /api/admin/posts — all posts; ?flagged=true for flagged only
+// Response mirrors the main-feed shape so the admin UI can reuse PostCard.
 router.get("/posts", async (req, res, next) => {
   try {
     const where = req.query.flagged === "true" ? { isFlagged: true } : {};
@@ -16,20 +29,64 @@ router.get("/posts", async (req, res, next) => {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        author: { select: { username: true, nickname: true } },
+        author: { select: { username: true, nickname: true, avatarColor: true } },
         _count: { select: { likes: true } },
       },
     });
     res.json(posts.map(function(p) {
       return {
-        id:        p.id,
-        userId:    p.authorId,
-        username:  p.author ? p.author.username : "",
-        caption:   p.caption || "",
-        isFlagged: p.isFlagged,
-        likes:     p._count ? p._count.likes : 0,
-        createdAt: p.createdAt,
-        bitmap:    { width: p.width, height: p.height, pixels: p.pixels },
+        id:          p.id,
+        userId:      p.authorId,
+        username:    p.author ? p.author.username : "",
+        nickname:    p.author ? (p.author.nickname || p.author.username) : "",
+        avatarColor: p.author ? (p.author.avatarColor || null) : null,
+        timestamp:   timeAgo(p.createdAt),
+        createdAt:   new Date(p.createdAt).getTime(),
+        likes:       p._count ? p._count.likes : 0,
+        liked:       false,
+        caption:     p.caption || "",
+        tags:        (p.hashtags || []).map(function(t) { return t.startsWith("#") ? t : "#" + t; }),
+        isFlagged:   p.isFlagged,
+        bitmap: {
+          width:  p.width,
+          height: p.height,
+          pixels: p.pixels,
+          scale:  computeScale(p.width, p.height),
+        },
+      };
+    }));
+  } catch (err) { next(err); }
+});
+
+// GET /api/admin/users — list users for moderation; supports ?q= search.
+// Includes SUSPENDED/DELETED users (unlike /api/users/search, which hides them).
+router.get("/users", async (req, res, next) => {
+  try {
+    const q = (req.query.q || "").trim();
+    const where = q
+      ? {
+          OR: [
+            { username: { contains: q, mode: "insensitive" } },
+            { nickname: { contains: q, mode: "insensitive" } },
+          ],
+        }
+      : {};
+    const users = await prisma.user.findMany({
+      where,
+      orderBy: { username: "asc" },
+      take: 200,
+      include: { _count: { select: { posts: true } } },
+    });
+    res.json(users.map(function(u) {
+      return {
+        id:          u.id,
+        username:    u.username,
+        nickname:    u.nickname,
+        avatarColor: u.avatarColor,
+        role:        u.role,
+        status:      u.status,
+        createdAt:   u.createdAt,
+        postCount:   u._count ? u._count.posts : 0,
       };
     }));
   } catch (err) { next(err); }
