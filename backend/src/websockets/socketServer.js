@@ -1,6 +1,10 @@
+// Socket.io server — each user joins a room keyed by their UUID so
+// emitToUser() can target them without broadcasting.
+
 const { Server } = require("socket.io");
 const { createClient } = require("@supabase/supabase-js");
 
+// Module-level so emitToUser() can reach the server from other modules.
 let io = null;
 
 function initSocketServer(httpServer, corsOrigin) {
@@ -14,6 +18,7 @@ function initSocketServer(httpServer, corsOrigin) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
+  // Handshake auth — verify the Supabase JWT passed in socket.handshake.auth.
   io.use(async function(socket, next) {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error("Missing auth token"));
@@ -41,6 +46,7 @@ function initSocketServer(httpServer, corsOrigin) {
   return io;
 }
 
+// Emit to a single user's room. No-op if the server hasn't been initialized.
 function emitToUser(userId, event, data) {
   if (io) {
     io.to(userId).emit(event, data);

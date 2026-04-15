@@ -1,3 +1,5 @@
+/* Dark-mode overrides. AppContext writes data-theme="dark" onto <html>. */
+
 :root[data-theme="dark"] {
   --black: #e8e8e8;
   --white: #1a1a1a;

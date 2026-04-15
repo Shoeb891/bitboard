@@ -1,3 +1,4 @@
+// API entry point — Express routes + Socket.io sharing one HTTP server.
 require("dotenv").config({ path: require("path").resolve(__dirname, ".env") });
 
 const express = require("express");
@@ -16,8 +17,10 @@ const app    = express();
 const server = http.createServer(app);
 
 // ── Middleware ────────────────────────────────────────────────────────────────
+// CORS origin is env-driven (Vite in dev, deployed frontend in prod).
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
 app.use(cors({ origin: corsOrigin, credentials: true }));
+// 2mb covers the largest bitmap + animation frames payload.
 app.use(express.json({ limit: "2mb" }));
 
 // ── Routes ───────────────────────────────────────────────────────────────────

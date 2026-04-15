@@ -1,3 +1,4 @@
+// Spinner placeholder. `height` lets callers embed it inside smaller sections.
 import React from 'react'
 
 const Loading = ({height = '100vh'}) => {

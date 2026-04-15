@@ -1,3 +1,4 @@
+// Login page — split-screen branding + LoginForm.
 import LoginForm from "../Components/auth/LoginForm";
 
 export default function LoginPage() {

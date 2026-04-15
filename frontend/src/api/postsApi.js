@@ -1,3 +1,4 @@
+// Wrappers around /api/posts/*. State/shaping lives in useFeed.
 import { apiFetch } from "./apiFetch";
 
 /** All posts, newest first. */

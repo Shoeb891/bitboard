@@ -1,3 +1,4 @@
+// Animation player for multi-frame posts. Cycles post.frames at FPS.
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, SkipBack } from "lucide-react";
 import { renderBitmapToCanvas } from "../../utils/bitmap";
@@ -22,6 +23,7 @@ export default function PostAnimationPlayer({ post }) {
     );
   }, [current, post.id]);
 
+  // Advance frames while playing; cleanup prevents overlapping intervals.
   useEffect(() => {
     if (playing && frames.length > 1) {
       intervalRef.current = setInterval(() => {

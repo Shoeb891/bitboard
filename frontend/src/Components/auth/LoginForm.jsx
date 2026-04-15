@@ -1,3 +1,4 @@
+// Email + password login form. AuthContext picks up the session and loads the profile.
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import * as authApi from "../../api/authApi";

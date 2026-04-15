@@ -1,3 +1,4 @@
+// Three-pane animation studio: frame list, DrawingCanvas, live preview.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
@@ -24,6 +25,7 @@ export default function AnimationRoom() {
 
   function addFrame() {
     if (!currentPixels) return;
+    // Copy pixels so later canvas edits don't mutate the stored frame.
     const frame = {
       id: Date.now(),
       bitmap: {

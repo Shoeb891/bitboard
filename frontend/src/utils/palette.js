@@ -23,6 +23,7 @@ function contrastFor(hex) {
   const r = parseInt(full.slice(0, 2), 16) / 255;
   const g = parseInt(full.slice(2, 4), 16) / 255;
   const b = parseInt(full.slice(4, 6), 16) / 255;
+  // WCAG relative luminance: sRGB -> linear, then weighted (0.2126 / 0.7152 / 0.0722).
   const lin = c => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
   const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
   return L > 0.5 ? "#1a1a1a" : "#ffffff";
@@ -44,6 +45,7 @@ export function getUserPalette(userOrId = "") {
   return hashPalette(String(userOrId));
 }
 
+// djb2 hash -> deterministic palette index per user id.
 function hashPalette(id) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);

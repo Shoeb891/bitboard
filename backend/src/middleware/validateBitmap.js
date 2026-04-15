@@ -40,6 +40,7 @@ function validateBitmap(req, res, next) {
     return res.status(400).json({ error: "pixels length must equal width * height" });
   }
 
+  // Pixel indices are bounded by the submitted palette, or 16 by default.
   const paletteSize = Array.isArray(palette) && palette.length > 0
     ? palette.length
     : MAX_PALETTE_SIZE;
@@ -76,6 +77,7 @@ function validateBitmap(req, res, next) {
     return res.status(400).json({ error: "caption must be 500 characters or fewer" });
   }
 
+  // Optional animation frames — each matches the base bitmap's size and palette.
   if (frames !== undefined && frames !== null) {
     if (!Array.isArray(frames)) {
       return res.status(400).json({ error: "frames must be an array" });

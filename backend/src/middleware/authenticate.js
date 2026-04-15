@@ -1,6 +1,8 @@
+// Auth middleware — verifies the Supabase JWT and sets req.userId.
 const { createClient } = require("@supabase/supabase-js");
 const prisma = require("../db/prisma");
 
+// Server-side Supabase client (service role key — bypasses RLS).
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,

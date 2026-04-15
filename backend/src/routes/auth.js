@@ -1,3 +1,5 @@
+// /api/auth/* — bridges Supabase identity with the Prisma user profile.
+
 const express = require("express");
 const prisma = require("../db/prisma");
 const { authenticate, supabaseAdmin } = require("../middleware/authenticate");
@@ -148,6 +150,7 @@ router.patch("/me", authenticate, async (req, res, next) => {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+// Shapes the Prisma row into the public profile, flattening `_count` aggregates.
 function formatUser(u) {
   return {
     id:          u.id,

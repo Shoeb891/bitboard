@@ -1,3 +1,4 @@
+// Password-reset request form. Shows a neutral confirmation screen either way.
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import * as authApi from "../../api/authApi";

@@ -1,3 +1,4 @@
+// Wrappers around /api/users/*, /api/auth/me, and /api/notifications/*.
 import { apiFetch } from "./apiFetch";
 
 /** Look up a user by their public @username. */

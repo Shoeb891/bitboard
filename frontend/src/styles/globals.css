@@ -1,3 +1,8 @@
+/* Hand-written styles layered on top of Tailwind.
+ * Order: design tokens -> layout shells -> component classes -> utilities -> media queries.
+ * theme.css supplies the dark-mode overrides.
+ */
+
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
 @import "./theme.css";
 

@@ -1,3 +1,4 @@
+// Auth flows — Supabase for credentials, /api/auth/register for the Prisma profile.
 import { supabase } from "../lib/supabase";
 import { apiFetch } from "./apiFetch";
 

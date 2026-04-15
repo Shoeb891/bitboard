@@ -1,3 +1,6 @@
+// /api/admin/* — moderation endpoints. Every route is gated by
+// authenticate + requireAdmin, and every destructive action writes a ModerationLog row.
+
 const express = require("express");
 const prisma = require("../db/prisma");
 const { authenticate, supabaseAdmin } = require("../middleware/authenticate");
@@ -5,7 +8,7 @@ const requireAdmin = require("../middleware/requireAdmin");
 
 const router = express.Router();
 
-// All admin routes require authentication + admin role
+// Router-wide gate so individual handlers don't repeat the auth+role checks.
 router.use(authenticate, requireAdmin);
 
 function timeAgo(date) {
@@ -152,7 +155,8 @@ router.delete("/posts/:id", async (req, res, next) => {
       data: { adminId: req.userId, action: "REMOVE_POST", targetId: req.params.id },
     });
 
-    // Revoke user session (AMS1.7)
+    // Kick the author out of any active sessions. Errors here are logged but
+    // don't roll back the moderation action.
     try {
       await supabaseAdmin.auth.admin.signOut(post.authorId, "global");
     } catch (e) { console.error("session revocation error:", e); }
@@ -185,7 +189,8 @@ router.patch("/users/:id/suspend", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// DELETE /api/admin/users/:id — delete a user account (soft delete)
+// DELETE /api/admin/users/:id — soft delete (status = DELETED). Keeps the row
+// so posts, likes, and ModerationLog references remain valid; authenticate() rejects them.
 router.delete("/users/:id", async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.params.id } });

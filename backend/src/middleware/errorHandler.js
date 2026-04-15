@@ -16,6 +16,7 @@ function errorHandler(err, req, res, next) {
     return res.status(404).json({ error: "Record not found" });
   }
 
+  // Honour an explicit status on the error, else 500.
   const status = err.status ?? err.statusCode ?? 500;
   const message = err.message ?? "Internal server error";
   res.status(status).json({ error: message });

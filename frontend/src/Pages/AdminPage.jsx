@@ -1,3 +1,4 @@
+// Admin moderation panel — three tabs (all / flagged / users) sharing one shell.
 import { useState, useEffect } from "react";
 import { apiFetch } from "../api/apiFetch";
 import Loading from "../Components/Loading";
@@ -26,7 +27,7 @@ export default function AdminPage() {
     return function() { cancelled = true; };
   }, [tab]);
 
-  // Load users (debounced on query) when on the users tab.
+  // Load users (debounced 250ms on query) when on the users tab.
   useEffect(function() {
     if (tab !== "users") return;
     setPosts([]);

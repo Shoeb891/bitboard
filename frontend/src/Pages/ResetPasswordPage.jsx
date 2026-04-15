@@ -1,3 +1,4 @@
+// Reset-password landing page for the Supabase recovery link.
 import ResetPasswordForm from "../Components/auth/ResetPasswordForm";
 
 export default function ResetPasswordPage() {

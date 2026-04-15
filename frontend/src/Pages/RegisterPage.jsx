@@ -1,3 +1,4 @@
+// Signup page — split-screen branding + RegisterForm.
 import RegisterForm from "../Components/auth/RegisterForm";
 
 export default function RegisterPage() {

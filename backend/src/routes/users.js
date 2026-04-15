@@ -1,9 +1,12 @@
+// /api/users/* — public profile lookups, follower/following lists, follow toggle.
+
 const express = require("express");
 const prisma = require("../db/prisma");
 const { authenticate, optionalAuthenticate } = require("../middleware/authenticate");
 
 const router = express.Router();
 
+// Public profile shape — omits email and uiTheme (those only come back from /me).
 function formatUserProfile(u) {
   return {
     id:          u.id,
@@ -30,6 +33,7 @@ router.get("/search", optionalAuthenticate, async (req, res, next) => {
   try {
     const q = (req.query.q || "").trim();
     if (!q) return res.json([]);
+    // Hide SUSPENDED/DELETED users from public search.
     const users = await prisma.user.findMany({
       where: {
         status: "ACTIVE",
@@ -69,7 +73,7 @@ router.get("/:username", optionalAuthenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/users/:id/followers
+// GET /api/users/:id/followers — people who follow :id (Follow.followingId = :id).
 router.get("/:id/followers", async (req, res, next) => {
   try {
     const follows = await prisma.follow.findMany({
@@ -80,7 +84,7 @@ router.get("/:id/followers", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/users/:id/following
+// GET /api/users/:id/following — people :id follows (Follow.followerId = :id).
 router.get("/:id/following", async (req, res, next) => {
   try {
     const follows = await prisma.follow.findMany({

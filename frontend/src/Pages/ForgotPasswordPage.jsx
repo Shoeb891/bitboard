@@ -1,3 +1,4 @@
+// Forgot-password page: branding + ForgotPasswordForm.
 import ForgotPasswordForm from "../Components/auth/ForgotPasswordForm";
 
 export default function ForgotPasswordPage() {

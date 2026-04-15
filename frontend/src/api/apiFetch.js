@@ -1,5 +1,7 @@
+// Shared fetch wrapper: injects the Supabase token, sets JSON headers, unwraps errors.
 import { supabase } from "../lib/supabase";
 
+// Empty in dev (Vite proxies /api); set to the backend URL in prod.
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 /**

@@ -1,3 +1,4 @@
+// App shell — provider stack (Auth / App / Feed) and route groups (public, protected, admin).
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";

@@ -1,3 +1,4 @@
+// Route gate — waits for auth, redirects anon users to /login, blocks non-admins from /admin.
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import Loading from "../Loading";

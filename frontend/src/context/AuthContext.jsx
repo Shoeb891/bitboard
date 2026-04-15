@@ -1,3 +1,4 @@
+// Owns the Supabase session and the Prisma profile; re-fetches on auth state changes.
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { apiFetch } from "../api/apiFetch";

@@ -1,3 +1,6 @@
+// /api/notifications/* — per-user notification feed.
+// All mutations filter on recipientId so a caller can only touch their own rows.
+
 const express = require("express");
 const prisma = require("../db/prisma");
 const { authenticate } = require("../middleware/authenticate");
@@ -53,7 +56,7 @@ router.patch("/:id/read", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// PATCH /api/notifications/read-all — mark all as read
+// PATCH /api/notifications/read-all — bulk mark-read for the viewer.
 router.patch("/read-all", authenticate, async (req, res, next) => {
   try {
     await prisma.notification.updateMany({

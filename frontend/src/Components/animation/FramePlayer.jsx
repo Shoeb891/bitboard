@@ -1,3 +1,4 @@
+// Frame player used inside AnimationRoom for live and post-preview playback.
 import { useState, useEffect, useRef } from "react";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 import CanvasPreview from "../canvas/CanvasPreview";

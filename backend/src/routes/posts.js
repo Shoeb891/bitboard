@@ -1,3 +1,6 @@
+// /api/posts/* — bitmap CRUD, likes, flagging, and hashtag lookups.
+// Read endpoints funnel through enrichPosts() for a consistent response shape.
+
 const express = require("express");
 const prisma = require("../db/prisma");
 const { authenticate, optionalAuthenticate } = require("../middleware/authenticate");
@@ -5,6 +8,7 @@ const validateBitmap = require("../middleware/validateBitmap");
 
 const router = express.Router();
 
+// Short relative timestamp for feed display ("now" / "5m" / "3h" / "2d").
 function timeAgo(date) {
   const s = Math.floor((Date.now() - new Date(date)) / 1000);
   if (s < 60)    return "now";
@@ -13,10 +17,12 @@ function timeAgo(date) {
   return Math.floor(s / 86400) + "d";
 }
 
+// Display scale for the bitmap inside a ~560x460 post card; floored at 4 for legibility.
 function computeScale(w, h) {
   return Math.max(4, Math.min(Math.floor(560 / w), Math.floor(460 / h)));
 }
 
+// Shape a Prisma post row for the API. `liked` is per-viewer so the caller supplies it.
 function formatPost(p, likeCount, liked) {
   return {
     id:        p.id,
@@ -41,6 +47,8 @@ function formatPost(p, likeCount, liked) {
   };
 }
 
+// Attach each post's `liked` flag for the viewer. One batched query replaces
+// the naive N+1 per-post lookup; membership is then a Set check.
 async function enrichPosts(posts, userId) {
   if (!userId || posts.length === 0) {
     return posts.map(function(p) { return formatPost(p, p._count ? p._count.likes : 0, false); });
@@ -54,6 +62,7 @@ async function enrichPosts(posts, userId) {
   return posts.map(function(p) { return formatPost(p, p._count ? p._count.likes : 0, likedSet.has(p.id)); });
 }
 
+// Shared Prisma include — author display fields + like count in one query.
 const postInclude = {
   author: { select: { username: true, nickname: true, avatarColor: true } },
   _count: { select: { likes: true } },
@@ -88,11 +97,12 @@ router.get("/", optionalAuthenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/posts/feed — personalized feed
+// GET /api/posts/feed — personalized feed: your posts + posts from people you follow.
 router.get("/feed", authenticate, async (req, res, next) => {
   try {
     const follows = await prisma.follow.findMany({ where: { followerId: req.userId }, select: { followingId: true } });
     const followingIds = follows.map(function(f) { return f.followingId; });
+    // Include the viewer's own id so the feed always shows their own posts too.
     const authorIds = [...new Set([req.userId, ...followingIds])];
     const posts = await prisma.post.findMany({ where: { authorId: { in: authorIds } }, orderBy: { createdAt: "desc" }, include: postInclude });
     res.json(await enrichPosts(posts, req.userId));
@@ -165,7 +175,7 @@ router.post("/", authenticate, validateBitmap, async (req, res, next) => {
       include: postInclude,
     });
     const formatted = formatPost(post, 0, false);
-    // Notify followers asynchronously
+    // Fire-and-forget fan-out so the author's POST isn't blocked by notify writes.
     setImmediate(async function() {
       try {
         const { emitToUser } = require("../websockets/socketServer");
@@ -183,7 +193,7 @@ router.post("/", authenticate, validateBitmap, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// DELETE /api/posts/:id — delete own post only
+// DELETE /api/posts/:id — author-only. Clears notifications + likes first (no cascade).
 router.delete("/:id", authenticate, async (req, res, next) => {
   try {
     const post = await prisma.post.findUnique({ where: { id: req.params.id } });
@@ -217,7 +227,7 @@ router.post("/:id/flag", authenticate, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/posts/:id/like — toggle like
+// POST /api/posts/:id/like — toggle. Matching LIKE notification is created/removed in lockstep.
 router.post("/:id/like", authenticate, async (req, res, next) => {
   try {
     const post = await prisma.post.findUnique({
@@ -235,6 +245,7 @@ router.post("/:id/like", authenticate, async (req, res, next) => {
       await prisma.notification.deleteMany({ where: { type: "LIKE", postId: req.params.id, senderId: req.userId } });
     } else {
       await prisma.like.create({ data: { userId: req.userId, postId: req.params.id } });
+      // Don't notify the author when they like their own post.
       if (post.authorId !== req.userId) {
         setImmediate(async function() {
           try {

@@ -14,6 +14,7 @@ async function requireAdmin(req, res, next) {
     if (!user || user.role !== "ADMIN") {
       return res.status(403).json({ error: "Admin access required" });
     }
+    // Re-check status in case it changed since authenticate() ran.
     if (user.status !== "ACTIVE") {
       return res.status(403).json({ error: "Account is suspended or deleted" });
     }

@@ -1,3 +1,4 @@
+// Signup form. Username is lowercased to match backend rules; nickname falls back to the username.
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import * as authApi from "../../api/authApi";

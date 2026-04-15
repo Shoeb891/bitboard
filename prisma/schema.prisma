@@ -1,3 +1,8 @@
+// Bitboard data model.
+// Core: User -< Post -< Like; User -< Follow >- User (self-referential).
+// Side: Notification (fan-out of LIKE/FOLLOW/NEW_POST), ModerationLog (admin audit trail).
+// Supabase owns auth; User.id mirrors the Supabase auth user UUID.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +13,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// Profile row paired 1:1 with a Supabase auth user.
+// `status` gates access (SUSPENDED/DELETED blocked in middleware); `role` gates admin routes.
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
@@ -29,6 +36,9 @@ model User {
   moderationLogs        ModerationLog[]
 }
 
+// A bitmap post. `pixels` is row-major, length = width*height, each value an index into `palette`.
+// `frames` is optional animation: JSON array of { pixels: Int[] } sharing the post's width/height/palette.
+// `isFlagged` is set when any user reports the post; the admin UI filters on it.
 model Post {
   id        String   @id @default(uuid())
   authorId  String
@@ -59,6 +69,9 @@ model Like {
   @@unique([userId, postId])
 }
 
+// Directed follow edge: followerId follows followingId.
+// Relation names are reversed so User.followers/User.following read naturally
+// (my followers = rows where I'm the followingId, and vice versa).
 model Follow {
   id          String   @id @default(uuid())
   followerId  String
@@ -71,6 +84,8 @@ model Follow {
   @@unique([followerId, followingId])
 }
 
+// sender/post are nullable so notifications survive deletion of either.
+// Indexed on (recipientId, createdAt) for the bell dropdown's "latest per user" query.
 model Notification {
   id          String           @id @default(uuid())
   type        NotificationType
@@ -87,6 +102,9 @@ model Notification {
   @@index([recipientId, createdAt])
 }
 
+// Append-only admin audit trail.
+// `targetId` is a loose string (may reference a post or a user) — intentionally not a FK so
+// the log entry outlives the target row.
 model ModerationLog {
   id        String   @id @default(uuid())
   adminId   String
