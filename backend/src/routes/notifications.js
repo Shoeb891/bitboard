@@ -4,9 +4,19 @@ const { authenticate } = require("../middleware/authenticate");
 
 const router = express.Router();
 
+// Notifications age out after 2 days. Cleanup runs lazily inside the GET
+// handler (scoped to the requester) so we don't need an always-on scheduler —
+// the Render free tier sleeps when idle, which would starve any setInterval.
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+
 // GET /api/notifications — current user's notifications
 router.get("/", authenticate, async (req, res, next) => {
   try {
+    const cutoff = new Date(Date.now() - TWO_DAYS_MS);
+    await prisma.notification.deleteMany({
+      where: { recipientId: req.userId, createdAt: { lt: cutoff } },
+    });
+
     const rows = await prisma.notification.findMany({
       where: { recipientId: req.userId },
       orderBy: { createdAt: "desc" },

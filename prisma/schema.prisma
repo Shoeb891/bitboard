@@ -82,6 +82,8 @@ model Notification {
   recipient User  @relation("recipient", fields: [recipientId], references: [id])
   sender    User? @relation("sender", fields: [senderId], references: [id])
   post      Post? @relation(fields: [postId], references: [id])
+
+  @@index([recipientId, createdAt])
 }
 
 model ModerationLog {
