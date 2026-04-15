@@ -480,6 +480,39 @@
   top: 0;
   z-index: 4;
 }
+.bb-explore-tags.collapsed {
+  max-height: 80px;
+  overflow: hidden;
+}
+.bb-chip-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 16px 8px;
+  border-bottom: var(--border);
+  background: var(--white);
+}
+.bb-chip-toggle {
+  font-family: var(--fp);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  text-decoration: underline;
+  color: var(--black);
+}
+.bb-chip-toggle:hover { opacity: 1; }
+.bb-search-section-header {
+  font-family: var(--fp);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  opacity: 0.55;
+  margin-top: 6px;
+  margin-bottom: 2px;
+}
+.bb-search-section-header:first-child { margin-top: 0; }
 .bb-chip {
   font-family: var(--fp);
   font-size: 7px;
