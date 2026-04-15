@@ -180,6 +180,8 @@ Supabase dashboard → **Authentication** → **URL Configuration**:
 
 Click **Save**.
 
+Password-recovery links land on `/reset-password`, which is covered by the existing `/*` wildcards above — no extra entry required.
+
 ### Optional — disable email confirmation for demos
 
 Supabase → **Authentication** → **Providers** → **Email** → turn off **Confirm email**. New users can then use the app immediately without waiting for a confirmation email.

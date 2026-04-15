@@ -68,7 +68,13 @@ export default function LoginForm() {
         {loading ? "Logging in..." : "Log In"}
       </button>
 
-      <p style={{ marginTop: 16, textAlign: "center", fontSize: 13 }}>
+      <p style={{ marginTop: 12, textAlign: "center", fontSize: 13 }}>
+        <Link to="/forgot-password" style={{ color: "var(--accent)", fontWeight: 600 }}>
+          Forgot password?
+        </Link>
+      </p>
+
+      <p style={{ marginTop: 8, textAlign: "center", fontSize: 13 }}>
         No account?{" "}
         <Link to="/register" style={{ color: "var(--accent)", fontWeight: 600 }}>
           Register

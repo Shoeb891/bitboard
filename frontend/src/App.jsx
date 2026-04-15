@@ -12,6 +12,8 @@ import ProfilePage from "./Pages/ProfilePage";
 import SettingsPage from "./Pages/SettingsPage";
 import LoginPage from "./Pages/LoginPage";
 import RegisterPage from "./Pages/RegisterPage";
+import ForgotPasswordPage from "./Pages/ForgotPasswordPage";
+import ResetPasswordPage from "./Pages/ResetPasswordPage";
 import AdminPage from "./Pages/AdminPage";
 import Bitboard from "./Pages/Bitboard";
 import AnimationRoom from "./Components/animation/AnimationRoom";
@@ -23,8 +25,10 @@ export default function App() {
         <FeedProvider>
           <Routes>
             {/* Public auth pages */}
-            <Route path="/login"    element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login"           element={<LoginPage />} />
+            <Route path="/register"        element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
             {/* Protected pages — require login */}
             <Route path="/" element={<AuthGuard><Layout /></AuthGuard>}>
