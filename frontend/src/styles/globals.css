@@ -381,9 +381,11 @@
 /* ─── BB-NOTIFICATION ─── */
 .bb-notif-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
   width: 280px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
   background: var(--white);
   border: var(--border);
   z-index: 100;
