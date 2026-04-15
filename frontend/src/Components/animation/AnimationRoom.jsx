@@ -17,6 +17,11 @@ export default function AnimationRoom() {
   const [currentPixels, setCurrentPixels] = useState(null);
   const [posting, setPosting] = useState(false);
 
+  const [showPreview, setShowPreview]     = useState(false);
+  const [showPostPanel, setShowPostPanel] = useState(false);
+  const [caption, setCaption]   = useState("");
+  const [tagInput, setTagInput] = useState("");
+
   function addFrame() {
     if (!currentPixels) return;
     const frame = {
@@ -40,18 +45,42 @@ export default function AnimationRoom() {
     });
   }
 
+  function clearAll() {
+    setFrames([]);
+    setActiveIdx(0);
+    setCaption("");
+    setTagInput("");
+    setShowPostPanel(false);
+    setShowPreview(false);
+  }
+
   async function handlePost() {
-    if (frames.length === 0) return;
+    if (frames.length < 2) return;
+
+    const tags = tagInput
+      .split(/[\s,]+/)
+      .map(t => t.trim())
+      .filter(Boolean)
+      .map(t => (t.startsWith("#") ? t : `#${t}`));
+    if (tags.length === 0) tags.push("#animation");
+
+    const finalCaption = caption.trim()
+      || `Animation — ${frames.length} frame${frames.length !== 1 ? "s" : ""}`;
+
     setPosting(true);
-    // Post first frame as the representative image
-    await addPost({
-      bitmap: frames[0].bitmap,
-      caption: `Animation — ${frames.length} frame${frames.length !== 1 ? "s" : ""}`,
-      tags: ["#animation", "#pixelart"],
-      format: "square_sm",
-    });
-    setPosting(false);
-    navigate("/feed");
+    try {
+      await addPost({
+        bitmap: frames[0].bitmap,
+        caption: finalCaption,
+        tags,
+        format: "square_sm",
+        frames: frames.map(f => ({ pixels: f.bitmap.pixels })),
+      });
+      clearAll();
+      navigate("/feed");
+    } finally {
+      setPosting(false);
+    }
   }
 
   return (
@@ -102,7 +131,7 @@ export default function AnimationRoom() {
         </button>
       </div>
 
-      {/* Center: canvas */}
+      {/* Center: canvas + actions */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: 16, gap: 12, overflowY: "auto" }}>
         <div style={{ fontFamily: "var(--fp)", fontSize: 8, opacity: 0.6 }}>
           DRAW FRAME {activeIdx + 1}
@@ -113,21 +142,73 @@ export default function AnimationRoom() {
           palette={DEFAULT_PALETTE}
           onChange={data => setCurrentPixels(data)}
         />
-        <div style={{ display: "flex", gap: 8 }}>
+
+        <div className="bb-draw-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
           <button className="bb-btn" onClick={addFrame} disabled={!currentPixels}>
             + ADD FRAME
           </button>
           <button
-            className="bb-btn bb-btn-accent"
-            onClick={handlePost}
-            disabled={frames.length === 0 || posting}
+            className="bb-btn"
+            onClick={() => setShowPreview(v => !v)}
+            disabled={frames.length === 0}
           >
-            {posting ? "POSTING..." : "POST ANIMATION"}
+            {showPreview ? "HIDE PREVIEW" : "PREVIEW"}
+          </button>
+          <button
+            className="bb-btn bb-btn-accent"
+            onClick={() => setShowPostPanel(v => !v)}
+            disabled={frames.length < 2}
+            title={frames.length < 2 ? "Add at least 2 frames to post an animation" : undefined}
+          >
+            POST
+          </button>
+          <button className="bb-btn" onClick={clearAll} disabled={frames.length === 0}>
+            CLEAR
           </button>
         </div>
+
+        {showPreview && frames.length > 0 && (
+          <div style={{ padding: 12, background: "var(--white)", border: "var(--border)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ fontFamily: "var(--fp)", fontSize: 7, opacity: 0.6 }}>FEED PREVIEW</div>
+            <FramePlayer frames={frames} fps={4} />
+          </div>
+        )}
+
+        {showPostPanel && (
+          <div className="bb-draw-post-panel" style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontFamily: "var(--fp)", fontSize: 8, opacity: 0.6 }}>CAPTION</label>
+            <input
+              className="bb-input"
+              placeholder="Describe your animation..."
+              value={caption}
+              onChange={e => setCaption(e.target.value)}
+              maxLength={120}
+            />
+            <label style={{ fontFamily: "var(--fp)", fontSize: 8, opacity: 0.6 }}>TAGS</label>
+            <input
+              className="bb-input"
+              placeholder="#pixelart #loop ..."
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                className="bb-btn bb-btn-solid"
+                style={{ flex: 1 }}
+                onClick={handlePost}
+                disabled={posting || frames.length < 2}
+              >
+                {posting ? "POSTING..." : "CONFIRM POST"}
+              </button>
+              <button className="bb-btn" onClick={() => setShowPostPanel(false)}>
+                CANCEL
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Right: playback */}
+      {/* Right: live playback while editing */}
       {frames.length > 0 && (
         <div className="bb-anim-preview" style={{
           width: 200,
@@ -139,7 +220,7 @@ export default function AnimationRoom() {
           gap: 12,
           background: "var(--white)",
         }}>
-          <div style={{ fontFamily: "var(--fp)", fontSize: 7, opacity: 0.6 }}>PREVIEW</div>
+          <div style={{ fontFamily: "var(--fp)", fontSize: 7, opacity: 0.6 }}>LIVE</div>
           <FramePlayer frames={frames} fps={4} />
         </div>
       )}

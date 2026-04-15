@@ -37,6 +37,7 @@ function formatPost(p, likeCount, liked) {
       pixels: p.pixels,
       scale:  computeScale(p.width, p.height),
     },
+    frames:  Array.isArray(p.frames) ? p.frames : null,
   };
 }
 
@@ -152,13 +153,14 @@ router.get("/user/:userId/liked", optionalAuthenticate, async (req, res, next) =
 // POST /api/posts — create a new drawing post
 router.post("/", authenticate, validateBitmap, async (req, res, next) => {
   try {
-    const { width, height, pixels, caption, hashtags, palette } = req.body;
+    const { width, height, pixels, caption, hashtags, palette, frames } = req.body;
     const post = await prisma.post.create({
       data: {
         authorId: req.userId, width, height, pixels,
         caption:  caption  || "",
         hashtags: hashtags || [],
         palette:  palette  || [],
+        frames:   Array.isArray(frames) && frames.length > 0 ? frames : undefined,
       },
       include: postInclude,
     });

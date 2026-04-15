@@ -14,6 +14,8 @@ const MAX_PALETTE_SIZE = 16;
 const MAX_HASHTAGS     = 10;
 const MAX_HASHTAG_LEN  = 32;
 const MAX_CAPTION_LEN  = 500;
+const MIN_FRAMES       = 2;
+const MAX_FRAMES       = 60;
 
 function isAllowedSize(w, h) {
   return ALLOWED_DIMENSIONS.some(function(pair) {
@@ -22,7 +24,7 @@ function isAllowedSize(w, h) {
 }
 
 function validateBitmap(req, res, next) {
-  const { width, height, pixels, palette, hashtags, caption } = req.body;
+  const { width, height, pixels, palette, hashtags, caption, frames } = req.body;
 
   if (!Number.isInteger(width) || !Number.isInteger(height)) {
     return res.status(400).json({ error: "width and height must be integers" });
@@ -72,6 +74,30 @@ function validateBitmap(req, res, next) {
 
   if (caption !== undefined && typeof caption === "string" && caption.length > MAX_CAPTION_LEN) {
     return res.status(400).json({ error: "caption must be 500 characters or fewer" });
+  }
+
+  if (frames !== undefined && frames !== null) {
+    if (!Array.isArray(frames)) {
+      return res.status(400).json({ error: "frames must be an array" });
+    }
+    if (frames.length < MIN_FRAMES || frames.length > MAX_FRAMES) {
+      return res.status(400).json({ error: "frames must contain between 2 and 60 entries" });
+    }
+    const expectedLen = width * height;
+    for (const frame of frames) {
+      if (!frame || !Array.isArray(frame.pixels)) {
+        return res.status(400).json({ error: "each frame must have a pixels array" });
+      }
+      if (frame.pixels.length !== expectedLen) {
+        return res.status(400).json({ error: "each frame's pixels length must equal width * height" });
+      }
+      for (let i = 0; i < frame.pixels.length; i++) {
+        const v = frame.pixels[i];
+        if (!Number.isInteger(v) || v < 0 || v >= paletteSize) {
+          return res.status(400).json({ error: "frame pixel value out of palette range" });
+        }
+      }
+    }
   }
 
   next();

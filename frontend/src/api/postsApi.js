@@ -35,18 +35,17 @@ export async function likePost(postId) {
   return apiFetch("/api/posts/" + postId + "/like", { method: "POST" });
 }
 
-/** Create a new drawing post. */
-export async function createPost({ bitmap, caption, tags, format }) {
-  return apiFetch("/api/posts", {
-    method: "POST",
-    body: JSON.stringify({
-      width:    bitmap.width,
-      height:   bitmap.height,
-      pixels:   bitmap.pixels,
-      caption:  caption || "",
-      hashtags: (tags || []).map(function(t) { return t.startsWith("#") ? t : "#" + t; }),
-    }),
-  });
+/** Create a new drawing post. Pass `frames` to publish an animation. */
+export async function createPost({ bitmap, caption, tags, format, frames }) {
+  const body = {
+    width:    bitmap.width,
+    height:   bitmap.height,
+    pixels:   bitmap.pixels,
+    caption:  caption || "",
+    hashtags: (tags || []).map(function(t) { return t.startsWith("#") ? t : "#" + t; }),
+  };
+  if (Array.isArray(frames) && frames.length > 0) body.frames = frames;
+  return apiFetch("/api/posts", { method: "POST", body: JSON.stringify(body) });
 }
 
 /** Delete a post (must be the owner). */

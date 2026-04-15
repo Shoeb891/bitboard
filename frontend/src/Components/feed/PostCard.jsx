@@ -21,6 +21,7 @@ import { useAppContext } from "../../context/AppContext";
 import { useFeed } from "../../hooks/useFeed";
 import * as postsApi from "../../api/postsApi";
 import LikeButton from "./LikeButton";
+import PostAnimationPlayer from "./PostAnimationPlayer";
 
 // ── UserTag ──────────────────────────────────────────────────────────────────
 // Small diagonal badge showing the post author's username in their unique colour.
@@ -47,6 +48,7 @@ export default function PostCard({ post }) {
   // True when the logged-in user owns this post — shows the delete button
   const isOwn = state.currentUser?.id === post.userId;
   const [flagged, setFlagged] = useState(Boolean(post.isFlagged));
+  const isAnimation = Array.isArray(post.frames) && post.frames.length > 1;
 
   async function handleFlag() {
     if (flagged) return;
@@ -60,11 +62,13 @@ export default function PostCard({ post }) {
 
   // Draw the bitmap onto the canvas after the component mounts.
   // renderBitmapToCanvas handles both binary (0/1) and full-colour (0-15) pixel arrays.
+  // For animations, PostAnimationPlayer owns its own canvas, so we skip this.
   useEffect(() => {
+    if (isAnimation) return;
     if (canvasRef.current) {
       renderBitmapToCanvas(canvasRef.current, post.bitmap, DEFAULT_PALETTE);
     }
-  }, [post.id]); // re-run only if a different post is rendered into this card
+  }, [post.id, isAnimation]);
 
   return (
     <div className="bb-post">
@@ -98,8 +102,11 @@ export default function PostCard({ post }) {
         )}
       </div>
 
-      {/* ── Pixel art canvas — drawn by renderBitmapToCanvas in the useEffect above ── */}
-      <canvas ref={canvasRef} className="bb-post-canvas" />
+      {/* ── Pixel art — static canvas for drawings, player for animations ── */}
+      {isAnimation
+        ? <PostAnimationPlayer post={post} />
+        : <canvas ref={canvasRef} className="bb-post-canvas" />
+      }
 
       {/* ── Footer: like button ── */}
       <div className="bb-post-footer">

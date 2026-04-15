@@ -38,6 +38,7 @@ model Post {
   pixels    Int[]
   palette   String[]
   hashtags  String[]
+  frames    Json?
   isFlagged Boolean  @default(false)
   createdAt DateTime @default(now())
 
