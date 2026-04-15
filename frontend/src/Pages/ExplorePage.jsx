@@ -11,6 +11,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFeed } from "../hooks/useFeed";
+import { useFeedContext } from "../context/FeedContext";
+import { useAuthContext } from "../context/AuthContext";
 import Feed from "../Components/feed/Feed";
 import { getUserPalette } from "../utils/palette";
 import * as usersApi from "../api/usersApi";
@@ -18,7 +20,26 @@ import * as postsApi from "../api/postsApi";
 
 export default function ExplorePage() {
   const { posts, loading, activeTag, setTagFilter } = useFeed();
+  const { dispatch } = useFeedContext();
+  const { user } = useAuthContext();
   const navigate = useNavigate();
+
+  // Explore owns the "all posts" fetch — FeedContext is only a shared cache
+  // so like/delete mutations and WebSocket pushes land in the same place.
+  useEffect(function() {
+    if (!user) return;
+    let cancelled = false;
+    dispatch({ type: "SET_LOADING", payload: true });
+    postsApi.getPosts().then(function(rows) {
+      if (cancelled) return;
+      dispatch({ type: "SET_POSTS", payload: rows });
+    }).catch(function(err) {
+      if (cancelled) return;
+      console.error("Failed to load explore feed:", err);
+      dispatch({ type: "SET_POSTS", payload: [] });
+    });
+    return function() { cancelled = true; };
+  }, [user?.id, dispatch]);
 
   // Dynamic hashtag list fetched from the backend, sorted by popularity
   const [hashtags, setHashtags] = useState([]);

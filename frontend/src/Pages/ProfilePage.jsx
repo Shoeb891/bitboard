@@ -11,13 +11,15 @@ import * as usersApi from "../api/usersApi";
 import * as postsApi from "../api/postsApi";
 import { useAppContext } from "../context/AppContext";
 import { useFeed } from "../hooks/useFeed";
+import { useFeedContext } from "../context/FeedContext";
 import { useAuth } from "../hooks/useAuth";
 import Loading from "../Components/Loading";
 
 export default function ProfilePage() {
   const { username } = useParams();
   const { state } = useAppContext();
-  const { posts: allPosts } = useFeed();
+  const { posts: userPosts } = useFeed();
+  const { dispatch } = useFeedContext();
   const { user: authUser } = useAuth();
 
   const [user, setUser]             = useState(null);
@@ -29,6 +31,7 @@ export default function ProfilePage() {
 
   useEffect(function() {
     setLoading(true);
+    dispatch({ type: "SET_POSTS", payload: [] });
 
     var resolver;
     if (isOwnProfile) {
@@ -40,18 +43,25 @@ export default function ProfilePage() {
 
     resolver.then(function(u) {
       setUser(u);
-      // Fetch liked posts
-      if (u && u.id) {
-        postsApi.getLikedPosts(u.id).then(function(liked) {
-          setLikedPosts(liked);
-        }).catch(function() { setLikedPosts([]); });
+      if (!u || !u.id) {
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+      // Load this user's posts into FeedContext so LikeButton / delete /
+      // WebSocket pushes mutate the same shared store the other pages use.
+      // Wait for posts before clearing loading so the grid never flashes empty.
+      var postsP = postsApi.getPostsByUser(u.id)
+        .then(function(rows) { dispatch({ type: "SET_POSTS", payload: rows }); })
+        .catch(function() { dispatch({ type: "SET_POSTS", payload: [] }); });
+      var likedP = postsApi.getLikedPosts(u.id)
+        .then(function(liked) { setLikedPosts(liked); })
+        .catch(function() { setLikedPosts([]); });
+      Promise.all([postsP, likedP]).then(function() { setLoading(false); });
     }).catch(function() {
       setUser(null);
       setLoading(false);
     });
-  }, [username, isOwnProfile]);
+  }, [username, isOwnProfile, dispatch]);
 
   // Re-sync bio edits from AppContext
   useEffect(function() {
@@ -62,9 +72,6 @@ export default function ProfilePage() {
 
   if (loading) return <Loading height="60vh" />;
   if (!user) return <div className="bb-feed-empty">USER NOT FOUND</div>;
-
-  // Filter the global post list down to this user's posts
-  var userPosts = allPosts.filter(function(p) { return p.userId === user.id; });
 
   return (
     <>

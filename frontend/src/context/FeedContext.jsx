@@ -1,16 +1,16 @@
-// FeedContext — state for all post data.
+// FeedContext — state for the currently-visible set of posts.
 //
-// Posts change frequently (likes, new posts, deletes) so they live
-// in their own context to avoid re-rendering unrelated components.
+// Each page (Feed, Explore, Profile) owns the fetch for its own view and
+// writes the result in via SET_POSTS. Mutations (like/delete/ADD_POST from
+// WebSockets) then update whichever view is on screen.
 import { createContext, useContext, useReducer, useEffect } from "react";
 import { useAuthContext } from "./AuthContext";
-import * as postsApi from "../api/postsApi";
 
 const FeedContext = createContext(null);
 
 const initialState = {
   posts: [],
-  loading: true,
+  loading: false,
   activeTag: null,
 };
 
@@ -48,20 +48,11 @@ export function FeedProvider({ children }) {
   const [state, dispatch] = useReducer(feedReducer, initialState);
   const { user } = useAuthContext();
 
-  // Load posts when user is authenticated
+  // Clear the view cache whenever the authenticated user changes so a prior
+  // user's posts don't flash for the next one.
   useEffect(function() {
-    if (!user) {
-      dispatch({ type: "SET_POSTS", payload: [] });
-      return;
-    }
-    dispatch({ type: "SET_LOADING", payload: true });
-    postsApi.getPosts().then(function(posts) {
-      dispatch({ type: "SET_POSTS", payload: posts });
-    }).catch(function(err) {
-      console.error("Failed to load posts:", err);
-      dispatch({ type: "SET_POSTS", payload: [] });
-    });
-  }, [user]);
+    dispatch({ type: "SET_POSTS", payload: [] });
+  }, [user?.id]);
 
   return (
     <FeedContext.Provider value={{ state, dispatch }}>
