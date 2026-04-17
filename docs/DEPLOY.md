@@ -180,7 +180,7 @@ Supabase dashboard → **Authentication** → **URL Configuration**:
 
 Click **Save**.
 
-Password-recovery links land on `/reset-password`, which is covered by the existing `/*` wildcards above — no extra entry required.
+Password-recovery links use `/auth/confirm` for the PKCE token exchange, then redirect to `/reset-password`. Both paths are covered by the `/*` wildcards above — no extra entry required.
 
 ### Optional — disable email confirmation for demos
 
@@ -277,6 +277,7 @@ If `SUPABASE_SERVICE_ROLE_KEY` leaks:
 | Login redirects back to `/login` | Supabase redirect URLs missing the frontend origin | Step 5 — add URL and `/*` wildcard |
 | Realtime notifications never arrive | Socket.io CORS or wrong `VITE_API_BASE_URL` | Check Network → WS; confirm `VITE_API_BASE_URL` points at the API, not the frontend |
 | `/admin` returns 403 for a just-promoted user | Stale client profile | Sign out and back in |
+| Password reset link shows "Not Found" | Missing SPA rewrite rule, or Supabase PKCE template pointing at `/auth/confirm` | Confirm the `/* → /index.html` rewrite exists in Render dashboard (Step 2b). The app handles `/auth/confirm` for PKCE token exchange |
 | Queries fail with "PrismaClient is not initialized" | Client not regenerated after schema change | Manual Deploy → Clear build cache & deploy |
 
 ---

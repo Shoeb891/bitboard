@@ -15,6 +15,7 @@ import LoginPage from "./Pages/LoginPage";
 import RegisterPage from "./Pages/RegisterPage";
 import ForgotPasswordPage from "./Pages/ForgotPasswordPage";
 import ResetPasswordPage from "./Pages/ResetPasswordPage";
+import AuthCallbackPage from "./Pages/AuthCallbackPage";
 import AdminPage from "./Pages/AdminPage";
 import Bitboard from "./Pages/Bitboard";
 import AnimationRoom from "./Components/animation/AnimationRoom";
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/register"        element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password"  element={<ResetPasswordPage />} />
+            <Route path="/auth/confirm"   element={<AuthCallbackPage />} />
 
             {/* Protected pages — require login */}
             <Route path="/" element={<AuthGuard><Layout /></AuthGuard>}>
@@ -46,6 +48,9 @@ export default function App() {
 
             {/* Standalone demo */}
             <Route path="/demo" element={<Bitboard />} />
+
+            {/* Catch-all — redirect unknown paths to login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </FeedProvider>
       </AppProvider>
