@@ -3,6 +3,7 @@
 
 const { Server } = require("socket.io");
 const { createClient } = require("@supabase/supabase-js");
+const { setupGameHandlers } = require("./gameServer");
 
 // Module-level so emitToUser() can reach the server from other modules.
 let io = null;
@@ -37,6 +38,9 @@ function initSocketServer(httpServer, corsOrigin) {
     // Each user joins their personal room for targeted notifications
     socket.join(socket.userId);
     console.log("Socket connected: " + socket.userId);
+
+    // Register drawing-game event handlers on the same socket
+    setupGameHandlers(io, socket);
 
     socket.on("disconnect", function() {
       console.log("Socket disconnected: " + socket.userId);

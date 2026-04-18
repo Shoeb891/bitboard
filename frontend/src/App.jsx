@@ -19,6 +19,7 @@ import AuthCallbackPage from "./Pages/AuthCallbackPage";
 import AdminPage from "./Pages/AdminPage";
 import Bitboard from "./Pages/Bitboard";
 import AnimationRoom from "./Components/animation/AnimationRoom";
+import GamePage from "./Pages/GamePage";
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
               <Route path="explore"           element={<ExplorePage />} />
               <Route path="draw"              element={<DrawPage />} />
               <Route path="animate"           element={<AnimationRoom />} />
+              <Route path="game"             element={<GamePage />} />
               <Route path="profile"           element={<ProfilePage />} />
               <Route path="profile/:username" element={<ProfilePage />} />
               <Route path="settings"          element={<SettingsPage />} />
