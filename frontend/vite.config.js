@@ -7,9 +7,20 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { copyFileSync } from "fs";
+
+// Copies index.html → 404.html so Render serves the SPA for unknown paths.
+function spaFallback() {
+  return {
+    name: "spa-404-fallback",
+    closeBundle() {
+      copyFileSync("dist/index.html", "dist/404.html");
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), spaFallback()],
   server: {
     proxy: {
       "/api": "http://localhost:3001",
