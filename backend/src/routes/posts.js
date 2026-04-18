@@ -89,10 +89,13 @@ function buildMessage(type, username) {
   return "";
 }
 
+// Hide posts from soft-deleted authors on every public read endpoint.
+const visibleAuthorWhere = { author: { is: { status: { not: "DELETED" } } } };
+
 // GET /api/posts — all posts, newest first
 router.get("/", optionalAuthenticate, async (req, res, next) => {
   try {
-    const posts = await prisma.post.findMany({ orderBy: { createdAt: "desc" }, include: postInclude });
+    const posts = await prisma.post.findMany({ where: visibleAuthorWhere, orderBy: { createdAt: "desc" }, include: postInclude });
     res.json(await enrichPosts(posts, req.userId));
   } catch (err) { next(err); }
 });
@@ -104,7 +107,7 @@ router.get("/feed", authenticate, async (req, res, next) => {
     const followingIds = follows.map(function(f) { return f.followingId; });
     // Include the viewer's own id so the feed always shows their own posts too.
     const authorIds = [...new Set([req.userId, ...followingIds])];
-    const posts = await prisma.post.findMany({ where: { authorId: { in: authorIds } }, orderBy: { createdAt: "desc" }, include: postInclude });
+    const posts = await prisma.post.findMany({ where: { authorId: { in: authorIds }, ...visibleAuthorWhere }, orderBy: { createdAt: "desc" }, include: postInclude });
     res.json(await enrichPosts(posts, req.userId));
   } catch (err) { next(err); }
 });
@@ -132,7 +135,7 @@ router.get("/hashtags", async (req, res, next) => {
 router.get("/tag/:tag", optionalAuthenticate, async (req, res, next) => {
   try {
     const tag = req.params.tag.startsWith("#") ? req.params.tag : "#" + req.params.tag;
-    const posts = await prisma.post.findMany({ where: { hashtags: { has: tag } }, orderBy: { createdAt: "desc" }, include: postInclude });
+    const posts = await prisma.post.findMany({ where: { hashtags: { has: tag }, ...visibleAuthorWhere }, orderBy: { createdAt: "desc" }, include: postInclude });
     const enriched = await enrichPosts(posts, req.userId);
     enriched.sort(function(a, b) { return b.likes - a.likes; });
     res.json(enriched);
@@ -142,7 +145,7 @@ router.get("/tag/:tag", optionalAuthenticate, async (req, res, next) => {
 // GET /api/posts/user/:userId — posts by a user
 router.get("/user/:userId", optionalAuthenticate, async (req, res, next) => {
   try {
-    const posts = await prisma.post.findMany({ where: { authorId: req.params.userId }, orderBy: { createdAt: "desc" }, include: postInclude });
+    const posts = await prisma.post.findMany({ where: { authorId: req.params.userId, ...visibleAuthorWhere }, orderBy: { createdAt: "desc" }, include: postInclude });
     res.json(await enrichPosts(posts, req.userId));
   } catch (err) { next(err); }
 });
@@ -151,7 +154,7 @@ router.get("/user/:userId", optionalAuthenticate, async (req, res, next) => {
 router.get("/user/:userId/liked", optionalAuthenticate, async (req, res, next) => {
   try {
     const likes = await prisma.like.findMany({
-      where: { userId: req.params.userId },
+      where: { userId: req.params.userId, post: { is: visibleAuthorWhere } },
       include: { post: { include: postInclude } },
       orderBy: { createdAt: "desc" },
     });

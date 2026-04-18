@@ -57,7 +57,7 @@ router.get("/:username", optionalAuthenticate, async (req, res, next) => {
       where: { username: req.params.username },
       include: userInclude,
     });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user || user.status === "DELETED") return res.status(404).json({ error: "User not found" });
 
     const profile = formatUserProfile(user);
 

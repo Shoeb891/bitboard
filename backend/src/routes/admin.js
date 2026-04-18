@@ -23,11 +23,24 @@ function computeScale(w, h) {
   return Math.max(4, Math.min(Math.floor(560 / w), Math.floor(460 / h)));
 }
 
-// GET /api/admin/posts — all posts; ?flagged=true for flagged only
+// GET /api/admin/posts — all posts; ?flagged=true for flagged only; ?q= for text search
 // Response mirrors the main-feed shape so the admin UI can reuse PostCard.
 router.get("/posts", async (req, res, next) => {
   try {
-    const where = req.query.flagged === "true" ? { isFlagged: true } : {};
+    const q = (req.query.q || "").trim();
+    const filters = [];
+    if (req.query.flagged === "true") filters.push({ isFlagged: true });
+    if (q) {
+      filters.push({
+        OR: [
+          { caption:  { contains: q, mode: "insensitive" } },
+          { hashtags: { has: q.startsWith("#") ? q : "#" + q } },
+          { author:   { username: { contains: q, mode: "insensitive" } } },
+          { author:   { nickname: { contains: q, mode: "insensitive" } } },
+        ],
+      });
+    }
+    const where = filters.length ? { AND: filters } : {};
     const posts = await prisma.post.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -88,6 +101,7 @@ router.get("/users", async (req, res, next) => {
         avatarColor: u.avatarColor,
         role:        u.role,
         status:      u.status,
+        suspendedAt: u.suspendedAt,
         createdAt:   u.createdAt,
         postCount:   u._count ? u._count.posts : 0,
       };
@@ -165,6 +179,24 @@ router.delete("/posts/:id", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/admin/posts/:id/unflag — clear the flagged state on a post
+router.post("/posts/:id/unflag", async (req, res, next) => {
+  try {
+    const post = await prisma.post.findUnique({ where: { id: req.params.id } });
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    if (post.isFlagged) {
+      await prisma.post.update({ where: { id: req.params.id }, data: { isFlagged: false } });
+    }
+
+    await prisma.moderationLog.create({
+      data: { adminId: req.userId, action: "UNFLAG_POST", targetId: req.params.id },
+    });
+
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 // PATCH /api/admin/users/:id/suspend — suspend a user account
 router.patch("/users/:id/suspend", async (req, res, next) => {
   try {
@@ -173,7 +205,7 @@ router.patch("/users/:id/suspend", async (req, res, next) => {
 
     await prisma.user.update({
       where: { id: req.params.id },
-      data:  { status: "SUSPENDED" },
+      data:  { status: "SUSPENDED", suspendedAt: new Date() },
     });
 
     await prisma.moderationLog.create({
@@ -184,6 +216,25 @@ router.patch("/users/:id/suspend", async (req, res, next) => {
     try {
       await supabaseAdmin.auth.admin.signOut(req.params.id, "global");
     } catch (e) { console.error("session revocation error:", e); }
+
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/admin/users/:id/unsuspend — restore a suspended account to ACTIVE
+router.patch("/users/:id/unsuspend", async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data:  { status: "ACTIVE", suspendedAt: null },
+    });
+
+    await prisma.moderationLog.create({
+      data: { adminId: req.userId, action: "UNSUSPEND_ACCOUNT", targetId: req.params.id },
+    });
 
     res.json({ ok: true });
   } catch (err) { next(err); }

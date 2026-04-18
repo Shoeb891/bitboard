@@ -37,7 +37,10 @@ async function authenticate(req, res, next) {
       select: { status: true },
     });
     if (profile && profile.status !== "ACTIVE") {
-      return res.status(403).json({ error: "Account " + profile.status.toLowerCase() });
+      const msg = profile.status === "SUSPENDED"
+        ? "This account has been suspended."
+        : "This account has been banned from Bitboard.";
+      return res.status(403).json({ error: msg });
     }
   }
 

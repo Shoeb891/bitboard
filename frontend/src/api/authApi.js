@@ -5,6 +5,18 @@ import { apiFetch } from "./apiFetch";
 export async function login({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
+
+  // Supabase doesn't know about SUSPENDED/DELETED status — probe the backend so the
+  // login page can surface it. If /auth/me rejects, tear down the half-session first.
+  try {
+    await apiFetch("/api/auth/me", {
+      headers: { Authorization: "Bearer " + data.session.access_token },
+    });
+  } catch (err) {
+    await supabase.auth.signOut();
+    throw err;
+  }
+
   return data;
 }
 
