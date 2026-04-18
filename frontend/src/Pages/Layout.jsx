@@ -21,6 +21,7 @@ const ROUTE_TITLES = {
   "/explore":  "EXPLORE",
   "/draw":     "DRAW",
   "/animate":  "ANIMATE",
+  "/game":     "GAME",
   "/profile":  "PROFILE",
   "/settings": "SETTINGS",
 };
