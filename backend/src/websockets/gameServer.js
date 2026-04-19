@@ -5,17 +5,22 @@
 //
 // Room lifecycle:
 //   game:create  → host creates room, gets a 6-char code
-//   game:join    → others join with that code
+//   game:join    → others join with that code (also handles reconnect mid-game)
 //   game:start   → host starts; rounds begin
 //   game:draw    → drawer streams strokes; server relays to other players
 //   game:guess   → guessers submit text; server checks and scores
-//   game:leave / disconnect → player removed; room cleaned up when empty
+//   game:leave / disconnect → player marked disconnected; removed after 10 s grace
 //
 // Round flow (per round):
 //   startRound() → phase = 'drawing', word chosen, 60-s timer starts
 //   endRound()   → phase = 'between' (4 s), then next round or 'ended'
+//
+// Drawer rotation is tracked via room.drawersThisRound (Set of userIds) so that
+// leaves and reconnects don't skip players or falsely advance the round counter.
 
 const WORDS = require("../data/words");
+
+const DISCONNECT_GRACE_MS = 10_000;
 
 // ── In-memory store ───────────────────────────────────────────────────────────
 const rooms = {};
@@ -31,8 +36,6 @@ function pickWord() {
 }
 
 // Build a room-state snapshot for a specific player.
-// Drawers see the current word; guessers only see its length.
-// During 'between' and 'ended' phases everyone sees the last word.
 function roomView(room, forUserId) {
   const drawer = room.players[room.currentDrawerIndex] || null;
   const isDrawer = drawer && drawer.userId === forUserId;
@@ -53,6 +56,7 @@ function roomView(room, forUserId) {
       score: p.score,
       isDrawer: drawer ? p.userId === drawer.userId : false,
       guessed: room.guessedPlayerIds.has(p.userId),
+      disconnected: !!p.disconnected,
     })),
     hostId: room.hostId,
     isDrawer,
@@ -61,43 +65,50 @@ function roomView(room, forUserId) {
 
 // Send a tailored state snapshot to every connected player.
 function broadcast(io, room) {
-  for (const player of room.players) {
-    io.to(player.socketId).emit("game:state", roomView(room, player.userId));
+  for (const p of room.players) {
+    if (p.socketId) io.to(p.socketId).emit("game:state", roomView(room, p.userId));
+  }
+}
+
+// Emit a system chat message (join/leave/host-change/etc.) to the whole room.
+function systemMsg(io, room, text) {
+  const payload = { text, ts: Date.now() };
+  for (const p of room.players) {
+    if (p.socketId) io.to(p.socketId).emit("game:system", payload);
   }
 }
 
 // ── Round management ──────────────────────────────────────────────────────────
+
+// One tick of the server-side countdown; extracted so the resume path can reuse it.
+function tickTimer(io, room) {
+  room.timeLeft -= 1;
+  for (const p of room.players) {
+    if (p.socketId) io.to(p.socketId).emit("game:timer", { timeLeft: room.timeLeft });
+  }
+  if (room.timeLeft <= 0) endRound(io, room);
+}
 
 function startRound(io, room) {
   room.phase = "drawing";
   room.currentWord = pickWord();
   room.guessedPlayerIds = new Set();
   room.timeLeft = 60;
-  room.canvas = []; // reset stored strokes for this round
+  room.canvas = [];
 
-  // Tell all players to clear their canvas before the new round starts
-  for (const player of room.players) {
-    io.to(player.socketId).emit("game:canvas-clear");
+  const drawer = room.players[room.currentDrawerIndex];
+  if (drawer) room.drawersThisRound.add(drawer.userId);
+
+  for (const p of room.players) {
+    if (p.socketId) io.to(p.socketId).emit("game:canvas-clear");
   }
 
   broadcast(io, room);
 
-  // Server-side countdown — ticks every second
-  room.timerInterval = setInterval(() => {
-    room.timeLeft -= 1;
-
-    for (const player of room.players) {
-      io.to(player.socketId).emit("game:timer", { timeLeft: room.timeLeft });
-    }
-
-    if (room.timeLeft <= 0) {
-      endRound(io, room);
-    }
-  }, 1000);
+  room.timerInterval = setInterval(() => tickTimer(io, room), 1000);
 }
 
 function endRound(io, room) {
-  // Guard against calling endRound twice (timer + all-guessed race)
   if (room.phase !== "drawing") return;
 
   clearInterval(room.timerInterval);
@@ -106,7 +117,6 @@ function endRound(io, room) {
 
   broadcast(io, room);
 
-  // Pause between rounds, then either start the next or end the game
   room.betweenTimeout = setTimeout(() => {
     room.betweenTimeout = null;
 
@@ -116,22 +126,29 @@ function endRound(io, room) {
       return;
     }
 
-    // Advance drawer index, wrapping around
-    room.currentDrawerIndex =
-      (room.currentDrawerIndex + 1) % room.players.length;
+    // Pick the next drawer as the first surviving player who has not drawn yet.
+    // Position-independent so leaves/reconnects can't skip a player.
+    const nextDrawer = room.players.find(
+      (p) => !room.drawersThisRound.has(p.userId)
+    );
 
-    // Completed a full rotation → increment round counter
-    if (room.currentDrawerIndex === 0) {
+    if (!nextDrawer) {
       room.round += 1;
+      room.drawersThisRound = new Set();
+
+      if (room.round > room.maxRounds) {
+        room.phase = "ended";
+        room.currentWord = null;
+        broadcast(io, room);
+        return;
+      }
+
+      room.currentDrawerIndex = 0;
+    } else {
+      room.currentDrawerIndex = room.players.indexOf(nextDrawer);
     }
 
-    if (room.round > room.maxRounds) {
-      room.phase = "ended";
-      room.currentWord = null;
-      broadcast(io, room);
-    } else {
-      startRound(io, room);
-    }
+    startRound(io, room);
   }, 4000);
 }
 
@@ -144,11 +161,19 @@ function cleanupRoom(room) {
     clearTimeout(room.betweenTimeout);
     room.betweenTimeout = null;
   }
+  for (const p of room.players) {
+    if (p.disconnectTimer) {
+      clearTimeout(p.disconnectTimer);
+      p.disconnectTimer = null;
+    }
+  }
   delete rooms[room.code];
 }
 
 // ── Player leave / disconnect ─────────────────────────────────────────────────
 
+// Mark a player as disconnected, pause the round timer if they were drawing,
+// and schedule the actual removal after the grace period.
 function handleLeave(io, socket) {
   const code = socket.gameRoom;
   if (!code) return;
@@ -159,37 +184,68 @@ function handleLeave(io, socket) {
   socket.leave(`game:${code}`);
   socket.gameRoom = null;
 
-  // Determine if the leaving player was the current drawer before removing
-  const drawer = room.players[room.currentDrawerIndex];
-  const leavingIsDrawer = drawer && drawer.userId === socket.userId;
+  const player = room.players.find((p) => p.socketId === socket.id);
+  if (!player) return;
 
-  room.players = room.players.filter((p) => p.socketId !== socket.id);
+  const drawer = room.players[room.currentDrawerIndex];
+  const leavingIsDrawer = drawer && drawer.userId === player.userId;
+
+  player.disconnected = true;
+  player.socketId = null;
+
+  if (leavingIsDrawer && room.phase === "drawing" && room.timerInterval) {
+    clearInterval(room.timerInterval);
+    room.timerInterval = null;
+    systemMsg(io, room, `${player.username} (drawer) disconnected — pausing`);
+  } else {
+    systemMsg(io, room, `${player.username} disconnected — waiting 10s…`);
+  }
+
+  if (player.disconnectTimer) clearTimeout(player.disconnectTimer);
+  player.disconnectTimer = setTimeout(() => {
+    finalizeLeave(io, room, player);
+  }, DISCONNECT_GRACE_MS);
+
+  broadcast(io, room);
+}
+
+// Actually remove a player whose grace period has expired.
+function finalizeLeave(io, room, player) {
+  if (!player.disconnected) return;
+  if (!rooms[room.code]) return;
+
+  const drawerBefore = room.players[room.currentDrawerIndex];
+  const drawerWasLeaver = drawerBefore && drawerBefore.userId === player.userId;
+
+  room.players = room.players.filter((p) => p.userId !== player.userId);
+  player.disconnectTimer = null;
+
+  systemMsg(io, room, `${player.username} left`);
 
   if (room.players.length === 0) {
     cleanupRoom(room);
     return;
   }
 
-  // Transfer host if needed
-  if (room.hostId === socket.userId) {
+  if (room.hostId === player.userId) {
     room.hostId = room.players[0].userId;
+    systemMsg(io, room, `${room.players[0].username} is now the host`);
   }
 
-  // Fix drawer index if it's now out of bounds
+  if (room.phase === "drawing") {
+    if (drawerWasLeaver) {
+      systemMsg(io, room, `Drawer left — skipping round`);
+      endRound(io, room);
+      return;
+    }
+    if (room.players.length < 2) {
+      endRound(io, room);
+      return;
+    }
+  }
+
   if (room.currentDrawerIndex >= room.players.length) {
-    room.currentDrawerIndex = 0;
-  }
-
-  // If the drawer left mid-game, skip to next round
-  if (room.phase === "drawing" && leavingIsDrawer) {
-    endRound(io, room);
-    return;
-  }
-
-  // Not enough players left — end game
-  if (room.phase === "drawing" && room.players.length < 2) {
-    endRound(io, room);
-    return;
+    room.currentDrawerIndex = Math.max(0, room.players.length - 1);
   }
 
   broadcast(io, room);
@@ -202,7 +258,6 @@ function setupGameHandlers(io, socket) {
   socket.on("game:create", function (data, callback) {
     if (typeof callback !== "function") return;
 
-    // One game room per socket at a time
     if (socket.gameRoom) {
       return callback({ ok: false, error: "Already in a room" });
     }
@@ -219,6 +274,8 @@ function setupGameHandlers(io, socket) {
           userId: socket.userId,
           username: username || "Player",
           score: 0,
+          disconnected: false,
+          disconnectTimer: null,
         },
       ],
       phase: "lobby",
@@ -230,6 +287,7 @@ function setupGameHandlers(io, socket) {
       timerInterval: null,
       betweenTimeout: null,
       guessedPlayerIds: new Set(),
+      drawersThisRound: new Set(),
       canvas: [],
     };
 
@@ -240,34 +298,72 @@ function setupGameHandlers(io, socket) {
   });
 
   // ── game:join ────────────────────────────────────────────────────────────
+  // Handles both first-time joins (lobby only) and mid-game reconnects.
   socket.on("game:join", function (data, callback) {
     if (typeof callback !== "function") return;
 
     const { code, username } = data || {};
     const room = rooms[code];
-
     if (!room) return callback({ ok: false, error: "Room not found" });
+
+    const existing = room.players.find((p) => p.userId === socket.userId);
+
+    // Reconnect path — same userId already has a seat (possibly disconnected).
+    if (existing) {
+      if (existing.disconnectTimer) {
+        clearTimeout(existing.disconnectTimer);
+        existing.disconnectTimer = null;
+      }
+      existing.disconnected = false;
+      existing.socketId = socket.id;
+
+      socket.join(`game:${code}`);
+      socket.gameRoom = code;
+
+      systemMsg(io, room, `${existing.username} reconnected`);
+
+      // Replay persisted canvas strokes for the returning player.
+      for (const stroke of room.canvas) {
+        socket.emit("game:draw", stroke);
+      }
+
+      // Resume the timer if the reconnecting player is the current drawer.
+      if (room.phase === "drawing") {
+        const drawer = room.players[room.currentDrawerIndex];
+        if (drawer && drawer.userId === socket.userId && !room.timerInterval) {
+          room.timerInterval = setInterval(() => tickTimer(io, room), 1000);
+          systemMsg(io, room, `Drawer reconnected — resuming`);
+        }
+      }
+
+      broadcast(io, room);
+      return callback({
+        ok: true,
+        state: roomView(room, socket.userId),
+        resumed: true,
+      });
+    }
+
+    // New-join path — only allowed in lobby.
     if (room.phase !== "lobby")
       return callback({ ok: false, error: "Game already started" });
     if (room.players.length >= 8)
       return callback({ ok: false, error: "Room is full (max 8)" });
 
-    // Allow reconnect: same user joins again
-    const existing = room.players.find((p) => p.userId === socket.userId);
-    if (existing) {
-      existing.socketId = socket.id;
-    } else {
-      room.players.push({
-        socketId: socket.id,
-        userId: socket.userId,
-        username: username || "Player",
-        score: 0,
-      });
-    }
+    const newPlayer = {
+      socketId: socket.id,
+      userId: socket.userId,
+      username: username || "Player",
+      score: 0,
+      disconnected: false,
+      disconnectTimer: null,
+    };
+    room.players.push(newPlayer);
 
     socket.join(`game:${code}`);
     socket.gameRoom = code;
 
+    systemMsg(io, room, `${newPlayer.username} joined`);
     broadcast(io, room);
     callback({ ok: true, state: roomView(room, socket.userId) });
   });
@@ -288,15 +384,15 @@ function setupGameHandlers(io, socket) {
     room.maxRounds = (data?.maxRounds) || 3;
     room.currentDrawerIndex = 0;
     room.round = 1;
+    room.drawersThisRound = new Set();
 
     startRound(io, room);
     callback?.({ ok: true });
   });
 
   // ── game:draw ────────────────────────────────────────────────────────────
-  // Drawer sends stroke segments; server relays to all other players.
+  // Drawer sends stroke segments; server relays to all other connected players.
   // Stroke format: { type: 'start'|'move'|'end'|'clear', x, y, color, size }
-  // x and y are normalised to [0, 1] so they render correctly on any screen.
   socket.on("game:draw", function (strokeData) {
     const code = socket.gameRoom;
     const room = rooms[code];
@@ -305,13 +401,11 @@ function setupGameHandlers(io, socket) {
     const drawer = room.players[room.currentDrawerIndex];
     if (!drawer || drawer.userId !== socket.userId) return;
 
-    // Persist stroke so latecomers can replay the canvas
     room.canvas.push(strokeData);
 
-    // Relay to everyone else in the room
-    for (const player of room.players) {
-      if (player.userId !== socket.userId) {
-        io.to(player.socketId).emit("game:draw", strokeData);
+    for (const p of room.players) {
+      if (p.userId !== socket.userId && p.socketId) {
+        io.to(p.socketId).emit("game:draw", strokeData);
       }
     }
   });
@@ -323,8 +417,8 @@ function setupGameHandlers(io, socket) {
     if (!room || room.phase !== "drawing") return callback?.({ ok: false });
 
     const drawer = room.players[room.currentDrawerIndex];
-    if (drawer?.userId === socket.userId) return; // drawer can't guess
-    if (room.guessedPlayerIds.has(socket.userId)) return; // already correct
+    if (drawer?.userId === socket.userId) return;
+    if (room.guessedPlayerIds.has(socket.userId)) return;
 
     const guess = (data?.guess || "").trim();
     if (!guess) return;
@@ -340,15 +434,13 @@ function setupGameHandlers(io, socket) {
       correct,
     };
 
-    // Broadcast the guess message to everyone in the room
     for (const p of room.players) {
-      io.to(p.socketId).emit("game:guess", msgPayload);
+      if (p.socketId) io.to(p.socketId).emit("game:guess", msgPayload);
     }
 
     if (correct) {
       room.guessedPlayerIds.add(socket.userId);
 
-      // Score: guesser earns points proportional to remaining time
       const guesserPoints = Math.max(50, room.timeLeft * 5);
       const drawerPoints = 20;
 
@@ -357,14 +449,14 @@ function setupGameHandlers(io, socket) {
 
       broadcast(io, room);
 
-      // End round early if every non-drawer has guessed correctly
+      // Round ends early only when every CONNECTED non-drawer has guessed.
       const nonDrawers = room.players.filter(
-        (p) => p.userId !== drawer?.userId
+        (p) => p.userId !== drawer?.userId && !p.disconnected
       );
       const allGuessed = nonDrawers.every((p) =>
         room.guessedPlayerIds.has(p.userId)
       );
-      if (allGuessed) endRound(io, room);
+      if (allGuessed && nonDrawers.length > 0) endRound(io, room);
     }
 
     callback?.({ ok: true, correct });

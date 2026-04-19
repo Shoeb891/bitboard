@@ -80,7 +80,12 @@ export default function GamePage() {
 
     // Guess message (correct or not) from any player
     socket.on("game:guess", (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => [...prev, { ...msg, kind: "guess" }]);
+    });
+
+    // Server-side notices: joins, leaves, host change, pause/resume, etc.
+    socket.on("game:system", ({ text, ts }) => {
+      setMessages((prev) => [...prev, { kind: "system", text, ts }]);
     });
 
     // Timer tick
@@ -294,6 +299,7 @@ export default function GamePage() {
                 borderBottom: "1px solid #eee",
                 fontFamily: "var(--fb)",
                 fontSize: 15,
+                opacity: p.disconnected ? 0.45 : 1,
               }}
             >
               {p.userId === roomState.hostId && (
@@ -304,6 +310,9 @@ export default function GamePage() {
               {p.username}
               {p.userId === myUserId && (
                 <span style={{ fontSize: 11, color: "#999" }}>(you)</span>
+              )}
+              {p.disconnected && (
+                <span style={{ fontSize: 11, color: "#999" }}>…reconnecting</span>
               )}
             </div>
           ))}
@@ -404,6 +413,7 @@ export default function GamePage() {
                     fontFamily: "var(--fb)",
                     fontSize: 15,
                     color: p.guessed ? "#43aa8b" : "inherit",
+                    opacity: p.disconnected ? 0.45 : 1,
                   }}
                 >
                   <span>
@@ -411,6 +421,7 @@ export default function GamePage() {
                     {p.username}
                     {p.userId === myUserId ? " (you)" : ""}
                     {p.guessed ? " ✓" : ""}
+                    {p.disconnected ? " …" : ""}
                   </span>
                   <span style={{ fontFamily: "var(--fp)", fontSize: 9 }}>{p.score}</span>
                 </div>
@@ -423,21 +434,38 @@ export default function GamePage() {
 
               {/* Messages */}
               <div style={{ height: 200, overflowY: "auto", marginBottom: 8, display: "flex", flexDirection: "column", gap: 4 }}>
-                {messages.map((msg, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      fontFamily: "var(--fb)",
-                      fontSize: 14,
-                      color: msg.correct ? "#43aa8b" : "#333",
-                      background: msg.correct ? "#f0faf6" : "transparent",
-                      padding: msg.correct ? "2px 4px" : 0,
-                    }}
-                  >
-                    <strong>{msg.username}:</strong>{" "}
-                    {msg.correct ? `✓ ${msg.guess}` : msg.guess}
-                  </div>
-                ))}
+                {messages.map((msg, i) => {
+                  if (msg.kind === "system") {
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          fontFamily: "var(--fb)",
+                          fontSize: 13,
+                          color: "#888",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {msg.text}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        fontFamily: "var(--fb)",
+                        fontSize: 14,
+                        color: msg.correct ? "#43aa8b" : "#333",
+                        background: msg.correct ? "#f0faf6" : "transparent",
+                        padding: msg.correct ? "2px 4px" : 0,
+                      }}
+                    >
+                      <strong>{msg.username}:</strong>{" "}
+                      {msg.correct ? `✓ ${msg.guess}` : msg.guess}
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
 

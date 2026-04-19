@@ -79,6 +79,7 @@ The following features are fully interactive during a session but are powered en
 
 ### Work In Progress
 * Frame-by-frame animation builder with playback — functional but incomplete
+* Mini-game module (Draw & Guess) — real-time multiplayer over Socket.io; functional, hardening disconnect/reconnect handling
 * Mini-game module (Hangman) — not yet started
 
 ### Backend — Not yet implemented
