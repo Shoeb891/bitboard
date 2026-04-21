@@ -6,7 +6,7 @@
 //   - a purple "+ CREATE" shortcut that jumps straight to /draw
 //   - the current user's username badge and the notification bell at the bottom
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { Home, Compass, PenLine, Film, User, Settings, Plus, Shield, Gamepad2 } from "lucide-react";
+import { Home, Compass, PenLine, Film, User, Settings, Plus, Shield, Gamepad2, Puzzle } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { getUserPalette } from "../../utils/palette";
 import NotificationBell from "./NotificationBell";
@@ -25,6 +25,7 @@ export default function NavBar() {
     { to: "/draw",     label: "DRAW",    Icon: PenLine },
     { to: "/animate",  label: "ANIMATE", Icon: Film },
     { to: "/game",     label: "GAME",    Icon: Gamepad2 },
+    { to: "/hangman",  label: "HANGMAN", Icon: Puzzle },
     { to: "/profile",  label: "PROFILE", Icon: User },
     { to: "/settings", label: "SETTINGS",Icon: Settings },
     ...(isAdmin ? [{ to: "/admin", label: "ADMIN", Icon: Shield }] : []),

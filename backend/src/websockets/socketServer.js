@@ -4,6 +4,7 @@
 const { Server } = require("socket.io");
 const { createClient } = require("@supabase/supabase-js");
 const { setupGameHandlers } = require("./gameServer");
+const { setupHangmanHandlers } = require("./hangmanServer");
 
 // Module-level so emitToUser() can reach the server from other modules.
 let io = null;
@@ -41,6 +42,7 @@ function initSocketServer(httpServer, corsOrigin) {
 
     // Register drawing-game event handlers on the same socket
     setupGameHandlers(io, socket);
+    setupHangmanHandlers(io, socket);
 
     socket.on("disconnect", function() {
       console.log("Socket disconnected: " + socket.userId);

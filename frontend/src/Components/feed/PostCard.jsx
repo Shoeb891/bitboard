@@ -26,12 +26,13 @@ import PostAnimationPlayer from "./PostAnimationPlayer";
 // ── UserTag ──────────────────────────────────────────────────────────────────
 // Small diagonal badge showing the post author's username in their unique colour.
 // The colour is derived deterministically from the userId so it never changes.
-function UserTag({ username, userId, avatarColor }) {
+function UserTag({ username, userId, avatarColor, onClick }) {
   const palette = getUserPalette({ id: userId, avatarColor });
   return (
     <span
       className="bb-usertag"
-      style={{ background: palette.bg, color: palette.text }}
+      style={{ background: palette.bg, color: palette.text, cursor: onClick ? "pointer" : "default" }}
+      onClick={onClick}
     >
       {username}
     </span>
@@ -75,7 +76,12 @@ export default function PostCard({ post }) {
       {/* ── Header: username badge, timestamp, delete button ── */}
       <div className="bb-post-header">
         <div className="bb-post-meta">
-          <UserTag username={post.username} userId={post.userId} avatarColor={post.avatarColor} />
+          <UserTag
+            username={post.username}
+            userId={post.userId}
+            avatarColor={post.avatarColor}
+            onClick={() => navigate("/profile/" + post.username)}
+          />
           <span className="bb-post-time">{post.timestamp}</span>
         </div>
 
